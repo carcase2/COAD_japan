@@ -164,7 +164,7 @@ export default function PriceCalculator() {
     if (globalAddition === 0) return;
     setApplyingGlobalAddition(true);
     try {
-      await applyGarageGlobalAdditionToTable(globalAddition);
+      await applyGarageGlobalAdditionToTable(globalAddition, woodMultiplier);
       setGlobalAddition(0);
       setGlobalAdditionInput("0");
       await loadTable();
@@ -440,7 +440,9 @@ export default function PriceCalculator() {
                     {applyingGlobalAddition ? "적용 중..." : "전체 테이블에 적용"}
                   </button>
                 </div>
-                <p className="w-full text-xs text-slate-500">일시 적용: 금액 입력 후 「전체 테이블에 적용」을 누르면 차고 기본 단가 전체에 더해지고, 전체 추가 금액은 0으로 초기화됩니다.</p>
+                <p className="w-full text-xs text-slate-500">
+                  전체 추가 금액은 <strong>우드판넬</strong>에 더해지는 금액입니다. 기본 단가는 (금액÷우드 배율)만큼 올라갑니다. 예: 125 입력 시 우드판넬 +125, 기본 +100(125÷1.25). 적용 후 0으로 초기화됩니다.
+                </p>
                 <button
                   onClick={handleSaveGarageSettings}
                   disabled={savingGarageSettings}

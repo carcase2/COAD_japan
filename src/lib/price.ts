@@ -336,9 +336,15 @@ export function getGarageDisplayPrice(
   return wood + settings.premiumAddition;
 }
 
-// 차고셔터: 전체 추가 금액을 한 번만 단가 테이블(DB)에 반영. 적용 후 app_settings의 전체 추가는 0으로 초기화.
-export async function applyGarageGlobalAdditionToTable(amount: number): Promise<void> {
+// 차고셔터: 전체 추가 금액은 우드판넬에 더해지는 금액. 기본 단가에는 (금액÷우드 배율)을 더해 DB에 반영.
+export async function applyGarageGlobalAdditionToTable(
+  amount: number,
+  woodMultiplier: number
+): Promise<void> {
   if (amount === 0) return;
+  const additionToBase = Math.round(amount / woodMultiplier);
+  if (additionToBase === 0) return;
+
   const { data: rows, error: fetchError } = await supabase
     .from("unit_prices")
     .select("width_index, height_index, c1_price")
@@ -351,7 +357,7 @@ export async function applyGarageGlobalAdditionToTable(amount: number): Promise<
   if (!rows?.length) return;
 
   for (const row of rows) {
-    const newPrice = (row.c1_price ?? 0) + amount;
+    const newPrice = (row.c1_price ?? 0) + additionToBase;
     const { error: upsertError } = await supabase.from("unit_prices").upsert(
       {
         product_type: "garage_shutter",

@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# COAD 가격 계산기
 
-## Getting Started
+시트셔터/차고셔터 폭·높이 입력 시 자동 가격 계산, Supabase 기반 단가 테이블 관리
 
-First, run the development server:
+## 설정
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### 1. 환경 변수
+
+`.env.local` 파일에 Supabase 정보가 있어야 합니다:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Supabase 테이블 생성
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+[Supabase Dashboard](https://supabase.com/dashboard) → 프로젝트 선택 → **SQL Editor**에서 아래 SQL 실행:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sql
+-- unit_prices 테이블 생성
+CREATE TABLE IF NOT EXISTS unit_prices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_type TEXT NOT NULL CHECK (product_type IN ('sheet_shutter', 'garage_shutter')),
+  width_index INTEGER NOT NULL CHECK (width_index >= 0 AND width_index <= 19),
+  height_index INTEGER NOT NULL CHECK (height_index >= 0 AND height_index <= 11),
+  c1_price INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(product_type, width_index, height_index)
+);
 
-## Learn More
+ALTER TABLE unit_prices ENABLE ROW LEVEL SECURITY;
 
-To learn more about Next.js, take a look at the following resources:
+CREATE POLICY "Allow public read" ON unit_prices FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON unit_prices FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public update" ON unit_prices FOR UPDATE USING (true);
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+CREATE TRIGGER unit_prices_updated_at
+  BEFORE UPDATE ON unit_prices
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
+```
 
-## Deploy on Vercel
+**C-2, C-3 추가 금액 설정 테이블** (선택):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```sql
+CREATE TABLE IF NOT EXISTS app_settings (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  c2_addition INTEGER NOT NULL DEFAULT 180000,
+  c3_addition INTEGER NOT NULL DEFAULT 450000,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT single_row CHECK (id = 1)
+);
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+INSERT INTO app_settings (id, c2_addition, c3_addition)
+VALUES (1, 180000, 450000)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read" ON app_settings FOR SELECT USING (true);
+CREATE POLICY "Allow public update" ON app_settings FOR UPDATE USING (true);
+
+CREATE TRIGGER app_settings_updated_at
+  BEFORE UPDATE ON app_settings
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
+```
+
+### 3. 실행
+
+```bash
+npm install
+npm run dev
+```
+
+## 기능
+
+- **시트셔터** / **차고셔터** 제품 타입 선택
+- 폭·높이 입력 시 자동 가격 계산
+- C-1, C-2, C-3 타입 (C-2: +18만원, C-3: +45만원)
+- 단가 테이블 보기/수정 (Supabase 저장)
+# COAD_japan

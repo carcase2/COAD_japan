@@ -8,6 +8,7 @@ import {
   saveCTypeAdditions,
   getGaragePanelSettings,
   saveGaragePanelSettings,
+  applyGarageGlobalAdditionToTable,
   calculatePrice,
   calculateGaragePrice,
   getGarageDisplayPrice,
@@ -16,6 +17,7 @@ import {
   GARAGE_WIDTH_RANGES,
   GARAGE_HEIGHT_RANGES,
   GARAGE_PANEL_TYPES,
+  GARAGE_PANEL_TYPES_SELECTABLE,
   PRODUCT_TYPES,
   type CType,
   type PriceTable,
@@ -40,13 +42,16 @@ export default function PriceCalculator() {
   const [editModal, setEditModal] = useState<{ wIdx: number; hIdx: number } | null>(null);
   const [editModalValue, setEditModalValue] = useState("");
   // 차고셔터: 4종 패널 타입 및 설정
-  const [garagePanelType, setGaragePanelType] = useState<GaragePanelType>("base");
+  const [garagePanelType, setGaragePanelType] = useState<GaragePanelType>("wood");
   const [tableGaragePanelType, setTableGaragePanelType] = useState<GaragePanelType>("base");
   const [woodMultiplier, setWoodMultiplier] = useState(1.25);
   const [woodMultiplierInput, setWoodMultiplierInput] = useState("1.25"); // 소수점 입력용 문자열
   const [darkAddition, setDarkAddition] = useState(187000);
   const [premiumAddition, setPremiumAddition] = useState(440000);
+  const [globalAddition, setGlobalAddition] = useState(0);
+  const [globalAdditionInput, setGlobalAdditionInput] = useState("0"); // 마이너스 입력 허용용
   const [savingGarageSettings, setSavingGarageSettings] = useState(false);
+  const [applyingGlobalAddition, setApplyingGlobalAddition] = useState(false);
 
   const additions = { c2: c2Addition, c3: c3Addition };
   const garageSettings = { woodMultiplier, darkAddition, premiumAddition };
@@ -77,6 +82,8 @@ export default function PriceCalculator() {
       setWoodMultiplierInput(String(s.woodMultiplier));
       setDarkAddition(s.darkAddition);
       setPremiumAddition(s.premiumAddition);
+      setGlobalAddition(s.globalAddition);
+      setGlobalAdditionInput(String(s.globalAddition));
     });
   }, []);
 
@@ -145,11 +152,26 @@ export default function PriceCalculator() {
   const handleSaveGarageSettings = async () => {
     setSavingGarageSettings(true);
     try {
-      await saveGaragePanelSettings(woodMultiplier, darkAddition, premiumAddition);
+      await saveGaragePanelSettings(woodMultiplier, darkAddition, premiumAddition, globalAddition);
     } catch (err) {
       console.error(err);
     } finally {
       setSavingGarageSettings(false);
+    }
+  };
+
+  const handleApplyGlobalAddition = async () => {
+    if (globalAddition === 0) return;
+    setApplyingGlobalAddition(true);
+    try {
+      await applyGarageGlobalAdditionToTable(globalAddition);
+      setGlobalAddition(0);
+      setGlobalAdditionInput("0");
+      await loadTable();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setApplyingGlobalAddition(false);
     }
   };
 
@@ -188,7 +210,7 @@ export default function PriceCalculator() {
           </div>
           {isGarageShutter && (
             <p className="mt-2 text-sm text-amber-600">
-              차고셔터: 폭 2400~6000mm, 높이 2100~2700mm. 기본·우드판넬·다크계열·프리미엄판넬 4종.
+              차고셔터: 폭 2400~6000mm, 높이 2100~2700mm. 우드판넬·다크계열·프리미엄판넬.
             </p>
           )}
         </section>
@@ -223,27 +245,23 @@ export default function PriceCalculator() {
               <label className="mb-2 block text-sm font-medium text-slate-700">타입</label>
               {isGarageShutter ? (
                 <div className="flex flex-wrap gap-2">
-                  {(Object.keys(GARAGE_PANEL_TYPES) as GaragePanelType[]).map((pt) => (
+                  {GARAGE_PANEL_TYPES_SELECTABLE.map((pt) => (
                     <button
                       key={pt}
                       onClick={() => setGaragePanelType(pt)}
                       type="button"
                       className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
-                        pt === "base"
+                        pt === "wood"
                           ? garagePanelType === pt
-                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-                          : pt === "wood"
+                            ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
+                            : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                          : pt === "dark"
                             ? garagePanelType === pt
-                              ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
+                              ? "bg-slate-600 text-white ring-2 ring-slate-400 ring-offset-2"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                            : garagePanelType === pt
+                              ? "bg-amber-700 text-white ring-2 ring-amber-400 ring-offset-2"
                               : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
-                            : pt === "dark"
-                              ? garagePanelType === pt
-                                ? "bg-slate-600 text-white ring-2 ring-slate-400 ring-offset-2"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-                              : garagePanelType === pt
-                                ? "bg-amber-700 text-white ring-2 ring-amber-400 ring-offset-2"
-                                : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
                       }`}
                     >
                       {GARAGE_PANEL_TYPES[pt]}
@@ -397,6 +415,32 @@ export default function PriceCalculator() {
                   />
                   <span className="text-sm text-slate-600">엔</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">전체 추가 금액</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={globalAdditionInput}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^\d-]/g, "");
+                      if (v.includes("-") && !v.startsWith("-")) v = v.replace(/-/g, "");
+                      setGlobalAdditionInput(v);
+                      setGlobalAddition(v === "" || v === "-" ? 0 : parseInt(v, 10));
+                    }}
+                    placeholder="0 또는 -50000"
+                    className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600">엔</span>
+                  <button
+                    type="button"
+                    onClick={handleApplyGlobalAddition}
+                    disabled={applyingGlobalAddition || globalAddition === 0}
+                    className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {applyingGlobalAddition ? "적용 중..." : "전체 테이블에 적용"}
+                  </button>
+                </div>
+                <p className="w-full text-xs text-slate-500">일시 적용: 금액 입력 후 「전체 테이블에 적용」을 누르면 차고 기본 단가 전체에 더해지고, 전체 추가 금액은 0으로 초기화됩니다.</p>
                 <button
                   onClick={handleSaveGarageSettings}
                   disabled={savingGarageSettings}

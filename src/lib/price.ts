@@ -67,6 +67,9 @@ export const GARAGE_PANEL_TYPES = {
 
 export type GaragePanelType = keyof typeof GARAGE_PANEL_TYPES;
 
+// 사양 입력용: 기본 제외 (우드/다크/프리미엄만 선택)
+export const GARAGE_PANEL_TYPES_SELECTABLE: GaragePanelType[] = ["wood", "dark", "premium"];
+
 // C-2, C-3 추가 금액 (기본값, DB에서 불러옴)
 export const DEFAULT_C_ADDITIONS = {
   "C-1": 0,
@@ -174,19 +177,21 @@ export async function saveCTypeAdditions(c2: number, c3: number): Promise<void> 
   }
 }
 
-// 차고셔터 패널 설정 (DB): 우드 배율, 다크 추가엔, 프리미엄 추가엔
+// 차고셔터 패널 설정 (DB): 우드 배율, 다크/프리미엄 추가엔, 전체 추가엔
 const DEFAULT_GARAGE_WOOD_MULT = 1.25;
 const DEFAULT_GARAGE_DARK_ADD = 187000;
 const DEFAULT_GARAGE_PREMIUM_ADD = 440000;
+const DEFAULT_GARAGE_GLOBAL_ADD = 0;
 
 export async function getGaragePanelSettings(): Promise<{
   woodMultiplier: number;
   darkAddition: number;
   premiumAddition: number;
+  globalAddition: number;
 }> {
   const { data, error } = await supabase
     .from("app_settings")
-    .select("garage_wood_multiplier, garage_dark_addition, garage_premium_addition")
+    .select("garage_wood_multiplier, garage_dark_addition, garage_premium_addition, garage_global_addition")
     .eq("id", 1)
     .single();
 
@@ -195,19 +200,22 @@ export async function getGaragePanelSettings(): Promise<{
       woodMultiplier: DEFAULT_GARAGE_WOOD_MULT,
       darkAddition: DEFAULT_GARAGE_DARK_ADD,
       premiumAddition: DEFAULT_GARAGE_PREMIUM_ADD,
+      globalAddition: DEFAULT_GARAGE_GLOBAL_ADD,
     };
   }
   return {
     woodMultiplier: Number(data.garage_wood_multiplier ?? DEFAULT_GARAGE_WOOD_MULT),
     darkAddition: Number(data.garage_dark_addition ?? DEFAULT_GARAGE_DARK_ADD),
     premiumAddition: Number(data.garage_premium_addition ?? DEFAULT_GARAGE_PREMIUM_ADD),
+    globalAddition: Number(data.garage_global_addition ?? DEFAULT_GARAGE_GLOBAL_ADD),
   };
 }
 
 export async function saveGaragePanelSettings(
   woodMultiplier: number,
   darkAddition: number,
-  premiumAddition: number
+  premiumAddition: number,
+  globalAddition: number
 ): Promise<void> {
   const { error } = await supabase
     .from("app_settings")
@@ -215,6 +223,7 @@ export async function saveGaragePanelSettings(
       garage_wood_multiplier: woodMultiplier,
       garage_dark_addition: darkAddition,
       garage_premium_addition: premiumAddition,
+      garage_global_addition: globalAddition,
     })
     .eq("id", 1);
 
@@ -295,7 +304,7 @@ export function calculatePrice(
   return c1Price + add;
 }
 
-// 차고셔터: 기본 단가 + 패널 타입별 계산 (우드=기본×배율, 다크=우드+엔, 프리미엄=우드+엔)
+// 차고셔터: 기본 단가 + 패널 타입별 계산 (전체 추가 금액은 '전체 테이블에 적용' 시에만 단가에 반영됨)
 export function calculateGaragePrice(
   width: number,
   height: number,
@@ -311,10 +320,10 @@ export function calculateGaragePrice(
   if (panelType === "base") return base;
   if (panelType === "wood") return wood;
   if (panelType === "dark") return wood + settings.darkAddition;
-  return wood + settings.premiumAddition; // premium
+  return wood + settings.premiumAddition;
 }
 
-// 차고셔터 테이블 셀 표시용: 기본 단가와 패널 설정으로 패널별 금액 계산
+// 차고셔터 테이블 셀 표시용: 기본 단가와 패널 설정으로 패널별 금액
 export function getGarageDisplayPrice(
   basePrice: number,
   panelType: GaragePanelType,
@@ -325,4 +334,38 @@ export function getGarageDisplayPrice(
   if (panelType === "wood") return wood;
   if (panelType === "dark") return wood + settings.darkAddition;
   return wood + settings.premiumAddition;
+}
+
+// 차고셔터: 전체 추가 금액을 한 번만 단가 테이블(DB)에 반영. 적용 후 app_settings의 전체 추가는 0으로 초기화.
+export async function applyGarageGlobalAdditionToTable(amount: number): Promise<void> {
+  if (amount === 0) return;
+  const { data: rows, error: fetchError } = await supabase
+    .from("unit_prices")
+    .select("width_index, height_index, c1_price")
+    .eq("product_type", "garage_shutter");
+
+  if (fetchError) {
+    console.error("applyGarageGlobalAdditionToTable fetch error:", fetchError);
+    throw fetchError;
+  }
+  if (!rows?.length) return;
+
+  for (const row of rows) {
+    const newPrice = (row.c1_price ?? 0) + amount;
+    const { error: upsertError } = await supabase.from("unit_prices").upsert(
+      {
+        product_type: "garage_shutter",
+        width_index: row.width_index,
+        height_index: row.height_index,
+        c1_price: newPrice,
+      },
+      { onConflict: "product_type,width_index,height_index" }
+    );
+    if (upsertError) {
+      console.error("applyGarageGlobalAdditionToTable upsert error:", upsertError);
+      throw upsertError;
+    }
+  }
+
+  await supabase.from("app_settings").update({ garage_global_addition: 0 }).eq("id", 1);
 }

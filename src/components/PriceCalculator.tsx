@@ -43,6 +43,7 @@ export default function PriceCalculator() {
   const [garagePanelType, setGaragePanelType] = useState<GaragePanelType>("base");
   const [tableGaragePanelType, setTableGaragePanelType] = useState<GaragePanelType>("base");
   const [woodMultiplier, setWoodMultiplier] = useState(1.25);
+  const [woodMultiplierInput, setWoodMultiplierInput] = useState("1.25"); // 소수점 입력용 문자열
   const [darkAddition, setDarkAddition] = useState(187000);
   const [premiumAddition, setPremiumAddition] = useState(440000);
   const [savingGarageSettings, setSavingGarageSettings] = useState(false);
@@ -73,6 +74,7 @@ export default function PriceCalculator() {
     });
     getGaragePanelSettings().then((s) => {
       setWoodMultiplier(s.woodMultiplier);
+      setWoodMultiplierInput(String(s.woodMultiplier));
       setDarkAddition(s.darkAddition);
       setPremiumAddition(s.premiumAddition);
     });
@@ -360,8 +362,16 @@ export default function PriceCalculator() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    value={woodMultiplier}
-                    onChange={(e) => setWoodMultiplier(parseFloat(e.target.value) || 1.25)}
+                    value={woodMultiplierInput}
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/[^\d.]/g, "");
+                      const firstDot = v.indexOf(".");
+                      if (firstDot >= 0) v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, "");
+                      setWoodMultiplierInput(v);
+                      const n = parseFloat(v);
+                      setWoodMultiplier(Number.isFinite(n) && n > 0 ? n : 1.25);
+                    }}
+                    placeholder="1.25"
                     className="w-20 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>

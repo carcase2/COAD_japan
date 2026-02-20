@@ -87,3 +87,4 @@ npm run dev
 - C-1, C-2, C-3 타입 (C-2: +18만원, C-3: +45만원)
 - 단가 테이블 보기/수정 (Supabase 저장)
 # COAD_japan
+# COAD_japan

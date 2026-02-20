@@ -116,11 +116,17 @@ export async function getCTypeAdditions(): Promise<{ c2: number; c3: number }> {
 export async function saveCTypeAdditions(c2: number, c3: number): Promise<void> {
   const { error } = await supabase
     .from("app_settings")
-    .update({ c2_addition: c2, c3_addition: c3 })
-    .eq("id", 1);
+    .upsert(
+      { id: 1, c2_addition: c2, c3_addition: c3 },
+      { onConflict: "id" }
+    );
 
   if (error) {
-    console.error("Supabase saveCTypeAdditions error:", error);
+    console.error("Supabase saveCTypeAdditions error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
     throw error;
   }
 }

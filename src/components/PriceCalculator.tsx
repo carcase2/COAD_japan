@@ -211,7 +211,7 @@ export default function PriceCalculator() {
           <div className="mt-4 flex items-center gap-2">
             <span className="text-base font-medium text-slate-700">예상 가격:</span>
             <span className="text-xl font-bold text-blue-700">
-              {loading ? "로딩 중..." : price !== null ? `${formatPrice(price)}원` : "-"}
+              {loading ? "로딩 중..." : price !== null ? `¥${formatPrice(price)} (엔)` : "-"}
             </span>
           </div>
         </section>
@@ -246,9 +246,11 @@ export default function PriceCalculator() {
           {/* 단가 테이블 (보기 클릭 시 표시) */}
           {showTable && (
           <section className="overflow-x-auto rounded-xl bg-white p-6 shadow-sm">
-            {/* C-2, C-3 추가 금액 설정 */}
+            {/* C-2, C-3 추가 금액 설정 (DB 저장) */}
             <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <span className="text-sm font-medium text-slate-700">C 타입 추가 금액:</span>
+              <span className="text-sm font-medium text-slate-700">
+                C 타입 추가 금액 <span className="text-slate-500">(DB 저장)</span>
+              </span>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-slate-600">C-2</label>
                 <input
@@ -258,7 +260,7 @@ export default function PriceCalculator() {
                   onChange={(e) => setC2Addition(parseFormatted(e.target.value))}
                   className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <span className="text-sm text-slate-600">원</span>
+                <span className="text-sm text-slate-600">엔 (¥)</span>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-slate-600">C-3</label>
@@ -269,7 +271,7 @@ export default function PriceCalculator() {
                   onChange={(e) => setC3Addition(parseFormatted(e.target.value))}
                   className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <span className="text-sm text-slate-600">원</span>
+                <span className="text-sm text-slate-600">엔 (¥)</span>
               </div>
               <button
                 onClick={handleSaveAdditions}
@@ -344,7 +346,7 @@ export default function PriceCalculator() {
                               onClick={() => openEditModal(wIdx, hIdx)}
                               className="min-w-[7rem] w-full cursor-pointer border-0 px-3 py-2 text-center text-base font-medium text-slate-900 transition hover:bg-blue-50 focus:bg-blue-100 focus:outline-none"
                             >
-                              {formatPrice(getDisplayPrice(wIdx, hIdx, tableCType))}
+                              ¥{formatPrice(getDisplayPrice(wIdx, hIdx, tableCType))}
                             </button>
                           </td>
                         ))}
@@ -375,7 +377,7 @@ export default function PriceCalculator() {
               <div className="mb-4">
                 <label className="mb-1 block text-sm text-slate-600">기존 가격</label>
                 <p className="rounded-lg bg-slate-100 px-3 py-2 text-base font-medium text-slate-700">
-                  {formatNumber(table[editModal.wIdx]?.[editModal.hIdx] ?? 0)}원
+                  ¥{formatNumber(table[editModal.wIdx]?.[editModal.hIdx] ?? 0)} (엔)
                 </p>
               </div>
               <div className="mb-6">
@@ -388,7 +390,7 @@ export default function PriceCalculator() {
                   placeholder="변경할 가격 입력"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-slate-600">원</span>
+                <span className="ml-2 text-sm text-slate-600">엔 (¥)</span>
               </div>
               <div className="flex justify-end gap-2">
                 <button

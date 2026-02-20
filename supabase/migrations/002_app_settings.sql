@@ -12,13 +12,16 @@ CREATE TABLE IF NOT EXISTS app_settings (
   id INTEGER PRIMARY KEY DEFAULT 1,
   c2_addition INTEGER NOT NULL DEFAULT 180000,
   c3_addition INTEGER NOT NULL DEFAULT 450000,
+  garage_wood_multiplier NUMERIC NOT NULL DEFAULT 1.25,
+  garage_dark_addition INTEGER NOT NULL DEFAULT 187000,
+  garage_premium_addition INTEGER NOT NULL DEFAULT 440000,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
 );
 
 -- 초기 데이터
-INSERT INTO app_settings (id, c2_addition, c3_addition)
-VALUES (1, 180000, 450000)
+INSERT INTO app_settings (id, c2_addition, c3_addition, garage_wood_multiplier, garage_dark_addition, garage_premium_addition)
+VALUES (1, 180000, 450000, 1.25, 187000, 440000)
 ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;

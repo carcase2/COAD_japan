@@ -6,13 +6,21 @@ import {
   savePriceCell,
   getCTypeAdditions,
   saveCTypeAdditions,
+  getGaragePanelSettings,
+  saveGaragePanelSettings,
   calculatePrice,
+  calculateGaragePrice,
+  getGarageDisplayPrice,
   WIDTH_RANGES,
   HEIGHT_RANGES,
+  GARAGE_WIDTH_RANGES,
+  GARAGE_HEIGHT_RANGES,
+  GARAGE_PANEL_TYPES,
   PRODUCT_TYPES,
   type CType,
   type PriceTable,
   type ProductType,
+  type GaragePanelType,
 } from "@/lib/price";
 
 export default function PriceCalculator() {
@@ -31,8 +39,16 @@ export default function PriceCalculator() {
   const [savingAdditions, setSavingAdditions] = useState(false);
   const [editModal, setEditModal] = useState<{ wIdx: number; hIdx: number } | null>(null);
   const [editModalValue, setEditModalValue] = useState("");
+  // 차고셔터: 4종 패널 타입 및 설정
+  const [garagePanelType, setGaragePanelType] = useState<GaragePanelType>("base");
+  const [tableGaragePanelType, setTableGaragePanelType] = useState<GaragePanelType>("base");
+  const [woodMultiplier, setWoodMultiplier] = useState(1.25);
+  const [darkAddition, setDarkAddition] = useState(187000);
+  const [premiumAddition, setPremiumAddition] = useState(440000);
+  const [savingGarageSettings, setSavingGarageSettings] = useState(false);
 
   const additions = { c2: c2Addition, c3: c3Addition };
+  const garageSettings = { woodMultiplier, darkAddition, premiumAddition };
 
   const loadTable = useCallback(async () => {
     setLoading(true);
@@ -55,18 +71,28 @@ export default function PriceCalculator() {
       setC2Addition(a.c2);
       setC3Addition(a.c3);
     });
+    getGaragePanelSettings().then((s) => {
+      setWoodMultiplier(s.woodMultiplier);
+      setDarkAddition(s.darkAddition);
+      setPremiumAddition(s.premiumAddition);
+    });
   }, []);
 
   useEffect(() => {
     const w = parseInt(width, 10);
     const h = parseInt(height, 10);
-    if (!isNaN(w) && !isNaN(h) && table.length > 0) {
-      const p = calculatePrice(w, h, cType, table, additions);
+    if (isNaN(w) || isNaN(h) || table.length === 0) {
+      setPrice(null);
+      return;
+    }
+    if (productType === "garage_shutter") {
+      const p = calculateGaragePrice(w, h, garagePanelType, table, garageSettings);
       setPrice(p);
     } else {
-      setPrice(null);
+      const p = calculatePrice(w, h, cType, table, additions);
+      setPrice(p);
     }
-  }, [width, height, cType, table, additions]);
+  }, [width, height, cType, garagePanelType, productType, table, additions, garageSettings]);
 
   const openEditModal = (wIdx: number, hIdx: number) => {
     setEditModal({ wIdx, hIdx });
@@ -114,6 +140,17 @@ export default function PriceCalculator() {
     }
   };
 
+  const handleSaveGarageSettings = async () => {
+    setSavingGarageSettings(true);
+    try {
+      await saveGaragePanelSettings(woodMultiplier, darkAddition, premiumAddition);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingGarageSettings(false);
+    }
+  };
+
   const formatNumber = (n: number) => n.toLocaleString("ko-KR");
   const formatPrice = formatNumber;
   const parseFormatted = (s: string) => parseInt(s.replace(/\D/g, ""), 10) || 0;
@@ -149,7 +186,7 @@ export default function PriceCalculator() {
           </div>
           {isGarageShutter && (
             <p className="mt-2 text-sm text-amber-600">
-              차고셔터 단가는 시트셔터와 동일 구조로 준비되어 있습니다. 범위/단가는 추후 조정 가능합니다.
+              차고셔터: 폭 2400~6000mm, 높이 2100~2700mm. 기본·우드판넬·다크계열·프리미엄판넬 4종.
             </p>
           )}
         </section>
@@ -165,7 +202,7 @@ export default function PriceCalculator() {
                 inputMode="numeric"
                 value={width ? formatNumber(parseFormatted(width)) : width}
                 onChange={(e) => setWidth(e.target.value.replace(/\D/g, ""))}
-                placeholder="800~10000+"
+                placeholder={isGarageShutter ? "2400~6000" : "800~10000+"}
                 className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -176,36 +213,67 @@ export default function PriceCalculator() {
                 inputMode="numeric"
                 value={height ? formatNumber(parseFormatted(height)) : height}
                 onChange={(e) => setHeight(e.target.value.replace(/\D/g, ""))}
-                placeholder="1000~6000+"
+                placeholder={isGarageShutter ? "2100~2700" : "1000~6000+"}
                 className="w-36 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">타입</label>
-              <div className="flex gap-2">
-                {(["C-1", "C-2", "C-3"] as CType[]).map((ct) => (
-                  <button
-                    key={ct}
-                    onClick={() => setCType(ct)}
-                    type="button"
-                    className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
-                      ct === "C-1"
-                        ? cType === ct
-                          ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-                        : ct === "C-2"
+              {isGarageShutter ? (
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(GARAGE_PANEL_TYPES) as GaragePanelType[]).map((pt) => (
+                    <button
+                      key={pt}
+                      onClick={() => setGaragePanelType(pt)}
+                      type="button"
+                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                        pt === "base"
+                          ? garagePanelType === pt
+                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                          : pt === "wood"
+                            ? garagePanelType === pt
+                              ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
+                              : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                            : pt === "dark"
+                              ? garagePanelType === pt
+                                ? "bg-slate-600 text-white ring-2 ring-slate-400 ring-offset-2"
+                                : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                              : garagePanelType === pt
+                                ? "bg-amber-700 text-white ring-2 ring-amber-400 ring-offset-2"
+                                : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                      }`}
+                    >
+                      {GARAGE_PANEL_TYPES[pt]}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {(["C-1", "C-2", "C-3"] as CType[]).map((ct) => (
+                    <button
+                      key={ct}
+                      onClick={() => setCType(ct)}
+                      type="button"
+                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                        ct === "C-1"
                           ? cType === ct
-                            ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
-                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                          : cType === ct
-                            ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
-                            : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
-                    }`}
-                  >
-                    {ct}
-                  </button>
-                ))}
-              </div>
+                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                          : ct === "C-2"
+                            ? cType === ct
+                              ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
+                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                            : cType === ct
+                              ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
+                              : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
+                      }`}
+                    >
+                      {ct}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">
@@ -246,75 +314,192 @@ export default function PriceCalculator() {
           {/* 단가 테이블 (보기 클릭 시 표시) */}
           {showTable && (
           <section className="overflow-x-auto rounded-xl bg-white p-6 shadow-sm">
-            {/* C-2, C-3 추가 금액 설정 (DB 저장) */}
-            <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <span className="text-sm font-medium text-slate-700">
-                C 타입 추가 금액 <span className="text-slate-500">(DB 저장)</span>
-              </span>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600">C-2</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatNumber(c2Addition)}
-                  onChange={(e) => setC2Addition(parseFormatted(e.target.value))}
-                  className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <span className="text-sm text-slate-600">엔 (¥)</span>
+            {/* 시트셔터: C-2, C-3 추가 금액 | 차고셔터: 패널 설정 (DB 저장) */}
+            {!isGarageShutter ? (
+              <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <span className="text-sm font-medium text-slate-700">
+                  C 타입 추가 금액 <span className="text-slate-500">(DB 저장)</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">C-2</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(c2Addition)}
+                    onChange={(e) => setC2Addition(parseFormatted(e.target.value))}
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600">엔 (¥)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">C-3</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(c3Addition)}
+                    onChange={(e) => setC3Addition(parseFormatted(e.target.value))}
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600">엔 (¥)</span>
+                </div>
+                <button
+                  onClick={handleSaveAdditions}
+                  disabled={savingAdditions}
+                  className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {savingAdditions ? "저장 중..." : "저장"}
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-600">C-3</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatNumber(c3Addition)}
-                  onChange={(e) => setC3Addition(parseFormatted(e.target.value))}
-                  className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <span className="text-sm text-slate-600">엔 (¥)</span>
+            ) : (
+              <div className="mb-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <span className="text-sm font-medium text-slate-700">
+                  차고 패널 설정 <span className="text-slate-500">(DB 저장)</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">우드 배율</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={woodMultiplier}
+                    onChange={(e) => setWoodMultiplier(parseFloat(e.target.value) || 1.25)}
+                    className="w-20 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">다크 추가</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(darkAddition)}
+                    onChange={(e) => setDarkAddition(parseFormatted(e.target.value))}
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600">엔</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-slate-600">프리미엄 추가</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={formatNumber(premiumAddition)}
+                    onChange={(e) => setPremiumAddition(parseFormatted(e.target.value))}
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600">엔</span>
+                </div>
+                <button
+                  onClick={handleSaveGarageSettings}
+                  disabled={savingGarageSettings}
+                  className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                >
+                  {savingGarageSettings ? "저장 중..." : "저장"}
+                </button>
               </div>
-              <button
-                onClick={handleSaveAdditions}
-                disabled={savingAdditions}
-                className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-              >
-                {savingAdditions ? "저장 중..." : "저장"}
-              </button>
-            </div>
+            )}
             <div className="mb-4 flex items-center gap-4">
               <h2 className="text-lg font-semibold text-slate-800">
                 단가 테이블 ({PRODUCT_TYPES[productType]})
               </h2>
               {saving && <span className="text-sm font-medium text-slate-600">저장 중...</span>}
-              <div className="flex gap-2">
-                {(["C-1", "C-2", "C-3"] as CType[]).map((ct) => (
-                  <button
-                    key={ct}
-                    onClick={() => setTableCType(ct)}
-                    className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
-                      ct === "C-1"
-                        ? tableCType === ct
-                          ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
-                        : ct === "C-2"
+              {isGarageShutter ? (
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(GARAGE_PANEL_TYPES) as GaragePanelType[]).map((pt) => (
+                    <button
+                      key={pt}
+                      onClick={() => setTableGaragePanelType(pt)}
+                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                        pt === "base"
+                          ? tableGaragePanelType === pt
+                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                          : tableGaragePanelType === pt
+                            ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
+                            : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                      }`}
+                    >
+                      {GARAGE_PANEL_TYPES[pt]}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {(["C-1", "C-2", "C-3"] as CType[]).map((ct) => (
+                    <button
+                      key={ct}
+                      onClick={() => setTableCType(ct)}
+                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                        ct === "C-1"
                           ? tableCType === ct
-                            ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
-                            : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                          : tableCType === ct
-                            ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
-                            : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
-                    }`}
-                  >
-                    {ct}
-                  </button>
-                ))}
-              </div>
+                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                          : ct === "C-2"
+                            ? tableCType === ct
+                              ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
+                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                            : tableCType === ct
+                              ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
+                              : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
+                      }`}
+                    >
+                      {ct}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <p className="mb-3 text-sm font-medium text-slate-600">
-              가격을 클릭하면 변경 모달이 열립니다. C-1 기준 단가를 수정하면 C-2, C-3는 자동 계산됩니다.
+              {isGarageShutter
+                ? "기본만 클릭하여 수정. 우드/다크/프리미엄은 자동 계산됩니다."
+                : "가격을 클릭하면 변경 모달이 열립니다. C-1 기준 단가를 수정하면 C-2, C-3는 자동 계산됩니다."}
             </p>
             {loading ? (
               <p className="py-8 text-center text-slate-500">로딩 중...</p>
+            ) : isGarageShutter ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse border border-slate-400 text-base">
+                  <thead>
+                    <tr className="bg-slate-200">
+                      <th className="border border-slate-400 px-3 py-2 text-left font-semibold text-slate-900">
+                        높이 \\ 폭
+                      </th>
+                      {GARAGE_WIDTH_RANGES.map((r) => (
+                        <th
+                          key={r.label}
+                          className="border border-slate-400 px-3 py-2 text-center font-semibold text-slate-900"
+                        >
+                          {r.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GARAGE_HEIGHT_RANGES.map((hr, hIdx) => (
+                      <tr key={hr.label}>
+                        <td className="border border-slate-400 px-3 py-2 font-semibold text-slate-800">
+                          {hr.label}
+                        </td>
+                        {GARAGE_WIDTH_RANGES.map((wr, wIdx) => (
+                          <td key={wr.label} className="border border-slate-400 p-0">
+                            {tableGaragePanelType === "base" ? (
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(wIdx, hIdx)}
+                                className="min-w-[6rem] w-full cursor-pointer border-0 px-3 py-2 text-center text-base font-medium text-slate-900 transition hover:bg-blue-50 focus:bg-blue-100 focus:outline-none"
+                              >
+                                ¥{formatPrice(getGarageDisplayPrice(table[wIdx]?.[hIdx] ?? 0, "base", garageSettings))}
+                              </button>
+                            ) : (
+                              <span className="block min-w-[6rem] px-3 py-2 text-center text-base font-medium text-slate-700">
+                                ¥{formatPrice(getGarageDisplayPrice(table[wIdx]?.[hIdx] ?? 0, tableGaragePanelType, garageSettings))}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse border border-slate-400 text-base">
@@ -372,7 +557,7 @@ export default function PriceCalculator() {
             >
               <h3 className="mb-4 text-lg font-semibold text-slate-800">가격 변경</h3>
               <p className="mb-2 text-sm text-slate-600">
-                폭 {WIDTH_RANGES[editModal.wIdx]?.label} × 높이 {HEIGHT_RANGES[editModal.hIdx]?.label}
+                폭 {isGarageShutter ? GARAGE_WIDTH_RANGES[editModal.wIdx]?.label : WIDTH_RANGES[editModal.wIdx]?.label} × 높이 {isGarageShutter ? GARAGE_HEIGHT_RANGES[editModal.hIdx]?.label : HEIGHT_RANGES[editModal.hIdx]?.label}
               </p>
               <div className="mb-4">
                 <label className="mb-1 block text-sm text-slate-600">기존 가격</label>

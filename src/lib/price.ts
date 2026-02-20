@@ -24,7 +24,7 @@ export const WIDTH_RANGES = [
   { min: 10000, max: Infinity, label: "10000 이상" },
 ];
 
-// 높이 범위: 1000~1499, 1500~1999 ... 6000 이상
+// 높이 범위: 1000~1499, 1500~1999 ... 6000 이상 (시트셔터)
 export const HEIGHT_RANGES = [
   { min: 1000, max: 1499, label: "1000~1499" },
   { min: 1500, max: 1999, label: "1500~1999" },
@@ -38,6 +38,34 @@ export const HEIGHT_RANGES = [
   { min: 5500, max: 5999, label: "5500~5999" },
   { min: 6000, max: Infinity, label: "6000 이상" },
 ];
+
+// 차고셔터 전용: 폭 ~2400, ~2700, ~3000, ~3500, ~4000, ~5000, ~6000
+export const GARAGE_WIDTH_RANGES = [
+  { min: 0, max: 2400, label: "~2400" },
+  { min: 2401, max: 2700, label: "~2700" },
+  { min: 2701, max: 3000, label: "~3000" },
+  { min: 3001, max: 3500, label: "~3500" },
+  { min: 3501, max: 4000, label: "~4000" },
+  { min: 4001, max: 5000, label: "~5000" },
+  { min: 5001, max: 6000, label: "~6000" },
+];
+
+// 차고셔터 전용: 높이 ~2100, ~2400, ~2700
+export const GARAGE_HEIGHT_RANGES = [
+  { min: 0, max: 2100, label: "~2100" },
+  { min: 2101, max: 2400, label: "~2400" },
+  { min: 2401, max: 2700, label: "~2700" },
+];
+
+// 차고셔터 4종: 기본, 우드판넬(기본×배율), 다크계열(우드+엔), 프리미엄판넬(우드+엔)
+export const GARAGE_PANEL_TYPES = {
+  base: "기본",
+  wood: "우드판넬",
+  dark: "다크계열",
+  premium: "프리미엄판넬",
+} as const;
+
+export type GaragePanelType = keyof typeof GARAGE_PANEL_TYPES;
 
 // C-2, C-3 추가 금액 (기본값, DB에서 불러옴)
 export const DEFAULT_C_ADDITIONS = {
@@ -56,17 +84,27 @@ export const PRODUCT_TYPES = {
 
 export type ProductType = keyof typeof PRODUCT_TYPES;
 
-// 단가 테이블: widthIndex x heightIndex -> C-1 기준 단가
+// 단가 테이블: widthIndex x heightIndex -> 기준 단가 (시트: C-1, 차고: 기본)
 export type PriceTable = number[][];
 
-// 기본 단가 테이블 (예시)
-function getDefaultPriceTable(): PriceTable {
+function getDefaultSheetPriceTable(): PriceTable {
   const table: PriceTable = [];
   for (let w = 0; w < WIDTH_RANGES.length; w++) {
     const row: number[] = [];
     for (let h = 0; h < HEIGHT_RANGES.length; h++) {
-      const basePrice = 500000 + (w + h) * 50000;
-      row.push(basePrice);
+      row.push(500000 + (w + h) * 50000);
+    }
+    table.push(row);
+  }
+  return table;
+}
+
+function getDefaultGaragePriceTable(): PriceTable {
+  const table: PriceTable = [];
+  for (let w = 0; w < GARAGE_WIDTH_RANGES.length; w++) {
+    const row: number[] = [];
+    for (let h = 0; h < GARAGE_HEIGHT_RANGES.length; h++) {
+      row.push(500000 + (w + h) * 50000);
     }
     table.push(row);
   }
@@ -74,6 +112,10 @@ function getDefaultPriceTable(): PriceTable {
 }
 
 export async function getPriceTable(productType: ProductType): Promise<PriceTable> {
+  const isGarage = productType === "garage_shutter";
+  const numW = isGarage ? GARAGE_WIDTH_RANGES.length : WIDTH_RANGES.length;
+  const numH = isGarage ? GARAGE_HEIGHT_RANGES.length : HEIGHT_RANGES.length;
+
   const { data, error } = await supabase
     .from("unit_prices")
     .select("width_index, height_index, c1_price")
@@ -81,19 +123,20 @@ export async function getPriceTable(productType: ProductType): Promise<PriceTabl
 
   if (error) {
     console.error("Supabase getPriceTable error:", error);
-    return getDefaultPriceTable();
+    return isGarage ? getDefaultGaragePriceTable() : getDefaultSheetPriceTable();
   }
 
   if (!data || data.length === 0) {
-    return getDefaultPriceTable();
+    return isGarage ? getDefaultGaragePriceTable() : getDefaultSheetPriceTable();
   }
 
   const table: PriceTable = [];
-  for (let w = 0; w < WIDTH_RANGES.length; w++) {
+  const defaultTable = isGarage ? getDefaultGaragePriceTable() : getDefaultSheetPriceTable();
+  for (let w = 0; w < numW; w++) {
     const row: number[] = [];
-    for (let h = 0; h < HEIGHT_RANGES.length; h++) {
+    for (let h = 0; h < numH; h++) {
       const found = data.find((r) => r.width_index === w && r.height_index === h);
-      row.push(found?.c1_price ?? 500000 + (w + h) * 50000);
+      row.push(found?.c1_price ?? defaultTable[w]?.[h] ?? 500000 + (w + h) * 50000);
     }
     table.push(row);
   }
@@ -123,6 +166,60 @@ export async function saveCTypeAdditions(c2: number, c3: number): Promise<void> 
 
   if (error) {
     console.error("Supabase saveCTypeAdditions error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    throw error;
+  }
+}
+
+// 차고셔터 패널 설정 (DB): 우드 배율, 다크 추가엔, 프리미엄 추가엔
+const DEFAULT_GARAGE_WOOD_MULT = 1.25;
+const DEFAULT_GARAGE_DARK_ADD = 187000;
+const DEFAULT_GARAGE_PREMIUM_ADD = 440000;
+
+export async function getGaragePanelSettings(): Promise<{
+  woodMultiplier: number;
+  darkAddition: number;
+  premiumAddition: number;
+}> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("garage_wood_multiplier, garage_dark_addition, garage_premium_addition")
+    .eq("id", 1)
+    .single();
+
+  if (error || !data) {
+    return {
+      woodMultiplier: DEFAULT_GARAGE_WOOD_MULT,
+      darkAddition: DEFAULT_GARAGE_DARK_ADD,
+      premiumAddition: DEFAULT_GARAGE_PREMIUM_ADD,
+    };
+  }
+  return {
+    woodMultiplier: Number(data.garage_wood_multiplier ?? DEFAULT_GARAGE_WOOD_MULT),
+    darkAddition: Number(data.garage_dark_addition ?? DEFAULT_GARAGE_DARK_ADD),
+    premiumAddition: Number(data.garage_premium_addition ?? DEFAULT_GARAGE_PREMIUM_ADD),
+  };
+}
+
+export async function saveGaragePanelSettings(
+  woodMultiplier: number,
+  darkAddition: number,
+  premiumAddition: number
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_settings")
+    .update({
+      garage_wood_multiplier: woodMultiplier,
+      garage_dark_addition: darkAddition,
+      garage_premium_addition: premiumAddition,
+    })
+    .eq("id", 1);
+
+  if (error) {
+    console.error("Supabase saveGaragePanelSettings error:", {
       message: error.message,
       code: error.code,
       details: error.details,
@@ -169,6 +266,20 @@ export function getHeightIndex(height: number): number {
   return -1;
 }
 
+export function getGarageWidthIndex(width: number): number {
+  for (let i = 0; i < GARAGE_WIDTH_RANGES.length; i++) {
+    if (width >= GARAGE_WIDTH_RANGES[i].min && width <= GARAGE_WIDTH_RANGES[i].max) return i;
+  }
+  return -1;
+}
+
+export function getGarageHeightIndex(height: number): number {
+  for (let i = 0; i < GARAGE_HEIGHT_RANGES.length; i++) {
+    if (height >= GARAGE_HEIGHT_RANGES[i].min && height <= GARAGE_HEIGHT_RANGES[i].max) return i;
+  }
+  return -1;
+}
+
 export function calculatePrice(
   width: number,
   height: number,
@@ -182,4 +293,36 @@ export function calculatePrice(
   const c1Price = table[wIdx]?.[hIdx] ?? 0;
   const add = cType === "C-1" ? 0 : cType === "C-2" ? additions.c2 : additions.c3;
   return c1Price + add;
+}
+
+// 차고셔터: 기본 단가 + 패널 타입별 계산 (우드=기본×배율, 다크=우드+엔, 프리미엄=우드+엔)
+export function calculateGaragePrice(
+  width: number,
+  height: number,
+  panelType: GaragePanelType,
+  table: PriceTable,
+  settings: { woodMultiplier: number; darkAddition: number; premiumAddition: number }
+): number | null {
+  const wIdx = getGarageWidthIndex(width);
+  const hIdx = getGarageHeightIndex(height);
+  if (wIdx < 0 || hIdx < 0) return null;
+  const base = table[wIdx]?.[hIdx] ?? 0;
+  const wood = Math.round(base * settings.woodMultiplier);
+  if (panelType === "base") return base;
+  if (panelType === "wood") return wood;
+  if (panelType === "dark") return wood + settings.darkAddition;
+  return wood + settings.premiumAddition; // premium
+}
+
+// 차고셔터 테이블 셀 표시용: 기본 단가와 패널 설정으로 패널별 금액 계산
+export function getGarageDisplayPrice(
+  basePrice: number,
+  panelType: GaragePanelType,
+  settings: { woodMultiplier: number; darkAddition: number; premiumAddition: number }
+): number {
+  const wood = Math.round(basePrice * settings.woodMultiplier);
+  if (panelType === "base") return basePrice;
+  if (panelType === "wood") return wood;
+  if (panelType === "dark") return wood + settings.darkAddition;
+  return wood + settings.premiumAddition;
 }

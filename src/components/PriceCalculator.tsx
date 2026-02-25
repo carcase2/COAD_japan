@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   getPriceTable,
@@ -27,6 +29,7 @@ import {
 import { recordUsage } from "@/lib/usageHistory";
 
 export default function PriceCalculator() {
+  const pathname = usePathname();
   const [productType, setProductType] = useState<ProductType>("sheet_shutter");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
@@ -234,6 +237,11 @@ export default function PriceCalculator() {
     }
   }, [secretModalOpen]);
 
+  const goHome = useCallback(() => {
+    setHistoryUnlocked(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const handleSecretSubmit = () => {
     if (passwordInput !== "3805") {
       setPasswordInput("");
@@ -286,9 +294,31 @@ export default function PriceCalculator() {
             title=""
             aria-label="비밀"
           />
-          <div>
-            <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${theme.headerTitle}`}>COAD 견적 전 가격 계산</h1>
-            <p className={`mt-1 text-sm ${theme.headerDesc}`}>일본에서 견적서 작성 전, 폭·높이와 타입으로 미리 예상 가격을 확인할 수 있습니다.</p>
+          <div className="flex items-start gap-2">
+            <Link
+              href="/"
+              onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
+              className="shrink-0 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200/50 hover:text-slate-700"
+              title="홈"
+              aria-label="홈"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </Link>
+            <div>
+              <h1>
+                <Link
+                  href="/"
+                  onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
+                  className={`block text-2xl font-bold tracking-tight sm:text-3xl ${theme.headerTitle} hover:underline`}
+                >
+                  COAD 견적 전 가격 계산
+                </Link>
+              </h1>
+              <p className={`mt-1 text-sm ${theme.headerDesc}`}>일본에서 견적서 작성 전, 폭·높이와 타입으로 미리 예상 가격을 확인할 수 있습니다.</p>
+            </div>
           </div>
         </header>
 

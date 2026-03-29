@@ -26,10 +26,10 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-50 font-sans text-slate-900 antialiased`}
       >
         {children}
-        <footer className="mt-8 border-t border-slate-200/80 py-6 text-center text-sm text-slate-400">
+        <footer className="mt-10 border-t border-slate-200/70 bg-white/60 py-8 text-center text-xs font-medium tracking-wide text-slate-400">
           v{packageJson.version}
         </footer>
       </body>

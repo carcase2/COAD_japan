@@ -8,6 +8,7 @@ export async function recordUsage(params: {
   priceYen: number;
   typeInfo: string;
   referrer?: string | null;
+  pageUrl?: string | null;
 }): Promise<void> {
   try {
     const res = await fetch("/api/record-usage", {
@@ -20,6 +21,8 @@ export async function recordUsage(params: {
         priceYen: params.priceYen,
         typeInfo: params.typeInfo,
         referrer: params.referrer ?? null,
+        pageUrl: params.pageUrl ?? (typeof window !== "undefined" ? window.location.href : null),
+        clientUserAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
       }),
     });
     if (!res.ok) console.error("[usage_history] record error:", await res.text());

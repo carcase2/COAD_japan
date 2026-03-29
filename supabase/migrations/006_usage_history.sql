@@ -15,5 +15,8 @@ CREATE INDEX IF NOT EXISTS idx_usage_history_created_at ON usage_history (create
 ALTER TABLE usage_history ENABLE ROW LEVEL SECURITY;
 
 -- 클라이언트에서 기록만 허용, 조회는 API에서 비밀번호 확인 후 서버로만
+-- 재실행 시 정책 중복 오류 방지
+DROP POLICY IF EXISTS "Allow public insert" ON usage_history;
+DROP POLICY IF EXISTS "Allow public read" ON usage_history;
 CREATE POLICY "Allow public insert" ON usage_history FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public read" ON usage_history FOR SELECT USING (true);

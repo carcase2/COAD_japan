@@ -60,7 +60,7 @@ export default function PriceCalculator() {
   const [secretModalOpen, setSecretModalOpen] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [historyUnlocked, setHistoryUnlocked] = useState(false);
-  const [historyList, setHistoryList] = useState<Array<{ id: string; created_at: string; product_type: string; width_mm: number; height_mm: number; price_yen: number; type_info: string; referrer: string | null; ip_address: string | null; location: string | null }>>([]);
+  const [historyList, setHistoryList] = useState<Array<{ id: string; created_at: string; product_type: string; width_mm: number; height_mm: number; price_yen: number; type_info: string; referrer: string | null; ip_address: string | null; location: string | null; access_env: string | null }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const lastRecordedKeyRef = useRef<string>("");
   const historyPasswordRef = useRef<string>("");
@@ -133,6 +133,7 @@ export default function PriceCalculator() {
         priceYen: price,
         typeInfo,
         referrer: typeof document !== "undefined" ? document.referrer || null : null,
+        pageUrl: typeof window !== "undefined" ? window.location.href : null,
       }).catch(() => {});
     }, 2000);
     return () => clearTimeout(t);
@@ -259,14 +260,15 @@ export default function PriceCalculator() {
 
   const theme = {
     page: isSheetShutter
-      ? "min-h-screen bg-gradient-to-b from-emerald-50 via-emerald-50/95 to-emerald-100/80 py-6 px-4 sm:py-8 sm:px-6"
-      : "min-h-screen bg-gradient-to-b from-amber-50 via-amber-50/95 to-amber-100/80 py-6 px-4 sm:py-8 sm:px-6",
-    headerTitle: isSheetShutter ? "text-emerald-900" : "text-amber-900",
-    headerDesc: isSheetShutter ? "text-emerald-700/80" : "text-amber-700/80",
+      ? "min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 py-8 px-4 sm:py-10 sm:px-6"
+      : "min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50/40 py-8 px-4 sm:py-10 sm:px-6",
+    accent: isSheetShutter ? "emerald" : "amber",
+    headerDesc: "text-slate-500",
     section: isSheetShutter
-      ? "rounded-xl border-2 border-emerald-200/80 bg-white/90 shadow-sm shadow-emerald-100/50 p-5 sm:p-6"
-      : "rounded-xl border-2 border-amber-200/80 bg-white/90 shadow-sm shadow-amber-100/50 p-5 sm:p-6",
-    sectionTitle: isSheetShutter ? "text-emerald-800" : "text-amber-800",
+      ? "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] sm:p-7"
+      : "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] sm:p-7",
+    sectionTitle: isSheetShutter ? "text-slate-800" : "text-slate-800",
+    sectionAccent: isSheetShutter ? "bg-emerald-500" : "bg-amber-500",
   };
 
   // 타입 선택에 따른 예상 가격 박스 색상 (시트: C-1/C-2/C-3, 차고: 우드/다크/프리미엄)
@@ -284,69 +286,78 @@ export default function PriceCalculator() {
 
   return (
     <div className={theme.page}>
-      <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
-        <header className="relative pb-2">
+      <div className="mx-auto max-w-4xl space-y-7 sm:space-y-9">
+        <header className="relative pb-1">
           <button
             type="button"
             onClick={() => setSecretModalOpen(true)}
-            className="absolute right-0 top-0 h-8 w-8 rounded-full border-0 bg-transparent opacity-[0.07] hover:opacity-20 focus:opacity-20 focus:outline-none focus:ring-0"
+            className="absolute right-0 top-0 h-8 w-8 rounded-full border-0 bg-transparent opacity-[0.06] hover:opacity-[0.18] focus:opacity-[0.18] focus:outline-none focus:ring-0"
             style={{ background: "currentColor" }}
             title=""
             aria-label="비밀"
           />
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3 sm:gap-4">
             <Link
               href="/"
               onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
-              className="shrink-0 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200/50 hover:text-slate-700"
+              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
               title="홈"
               aria-label="홈"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
             </Link>
-            <div>
-              <h1>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">COAD Japan</p>
+              <h1 className="mt-1">
                 <Link
                   href="/"
                   onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
-                  className={`block text-2xl font-bold tracking-tight sm:text-3xl ${theme.headerTitle} hover:underline`}
+                  className={`block text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.65rem] sm:leading-tight ${theme.accent === "emerald" ? "hover:text-emerald-800" : "hover:text-amber-800"} transition-colors`}
                 >
                   COAD 견적 전 가격 계산
                 </Link>
               </h1>
-              <p className={`mt-1 text-sm ${theme.headerDesc}`}>일본에서 견적서 작성 전, 폭·높이와 타입으로 미리 예상 가격을 확인할 수 있습니다.</p>
+              <p className={`mt-2 max-w-xl text-sm leading-relaxed ${theme.headerDesc}`}>
+                일본에서 견적서 작성 전, 폭·높이와 타입으로 미리 예상 가격을 확인할 수 있습니다.
+              </p>
             </div>
           </div>
         </header>
 
         {/* 사용 히스토리 (비밀번호 인증 후) */}
         {historyUnlocked && (
-          <section className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-sm sm:p-5">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-base font-semibold text-slate-800 sm:text-lg">사용 히스토리</h2>
+          <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_8px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-900/[0.04] sm:p-7">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="h-8 w-1 shrink-0 rounded-full bg-slate-800" aria-hidden />
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">사용 히스토리</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">최근 500건 · 통계는 아래 목록 기준</p>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={fetchHistory}
                   disabled={historyLoading}
-                  className="rounded-lg bg-slate-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                  className="rounded-lg bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
                 >
                   {historyLoading ? "로딩…" : "새로고침"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setHistoryUnlocked(false)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
                 >
                   닫기
                 </button>
               </div>
             </div>
             {historyList.length === 0 && !historyLoading ? (
-              <p className="py-4 text-center text-sm text-slate-500">기록이 없습니다.</p>
+              <p className="rounded-xl bg-slate-50 py-10 text-center text-sm text-slate-500">기록이 없습니다.</p>
             ) : (
               <>
                 {/* 통계 + 그래프 */}
@@ -369,68 +380,68 @@ export default function PriceCalculator() {
                   const weekOnlyPct = total ? ((weekCount - todayCount) / total) * 100 : 0;
                   const olderPct = total ? (olderCount / total) * 100 : 0;
                   return (
-                    <div className="mb-5 space-y-5">
+                    <div className="mb-6 space-y-6">
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">총 사용 횟수</p>
-                          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{formatPrice(total)}<span className="ml-0.5 text-base font-normal text-slate-500">회</span></p>
+                        <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">총 사용 횟수</p>
+                          <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-slate-900">{formatPrice(total)}<span className="ml-1 text-sm font-medium text-slate-400">회</span></p>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">총 견적 합계</p>
-                          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">¥{formatPrice(sumYen)}</p>
+                        <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">총 견적 합계</p>
+                          <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-slate-900">¥{formatPrice(sumYen)}</p>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">접속지 수</p>
-                          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{uniqueIps}<span className="ml-0.5 text-base font-normal text-slate-500">곳</span></p>
+                        <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">접속지 수</p>
+                          <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-slate-900">{uniqueIps}<span className="ml-1 text-sm font-medium text-slate-400">곳</span></p>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">오늘 / 이번 주</p>
-                          <p className="mt-1 text-lg font-bold tabular-nums text-slate-800">오늘 {todayCount}회 · 주 {weekCount}회</p>
+                        <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">오늘 / 이번 주</p>
+                          <p className="mt-2 text-base font-bold tabular-nums leading-snug text-slate-900">오늘 {todayCount}회<br /><span className="text-sm font-semibold text-slate-500">이번 주 {weekCount}회</span></p>
                         </div>
                       </div>
                       <div className="grid gap-5 lg:grid-cols-2">
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="mb-3 text-sm font-semibold text-slate-700">제품별 사용 비율</p>
+                        <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                          <p className="mb-4 text-sm font-semibold text-slate-800">제품별 사용 비율</p>
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                              <span className="w-20 shrink-0 text-xs text-slate-600">시트셔터</span>
-                              <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${sheetPct}%` }} />
+                              <span className="w-[4.5rem] shrink-0 text-xs font-medium text-slate-600">시트셔터</span>
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${sheetPct}%` }} />
                               </div>
-                              <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums text-slate-600">{sheet}회</span>
+                              <span className="w-11 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">{sheet}회</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="w-20 shrink-0 text-xs text-slate-600">차고셔터</span>
-                              <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-amber-500" style={{ width: `${garagePct}%` }} />
+                              <span className="w-[4.5rem] shrink-0 text-xs font-medium text-slate-600">차고셔터</span>
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${garagePct}%` }} />
                               </div>
-                              <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums text-slate-600">{garage}회</span>
+                              <span className="w-11 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">{garage}회</span>
                             </div>
                           </div>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                          <p className="mb-3 text-sm font-semibold text-slate-700">기간별 사용 비율</p>
+                        <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                          <p className="mb-4 text-sm font-semibold text-slate-800">기간별 사용 비율</p>
                           <div className="space-y-2">
                             <div className="flex items-center gap-3">
-                              <span className="w-16 shrink-0 text-xs text-slate-600">오늘</span>
-                              <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-blue-500" style={{ width: `${todayPct}%` }} />
+                              <span className="w-16 shrink-0 text-xs font-medium text-slate-600">오늘</span>
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${todayPct}%` }} />
                               </div>
-                              <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums text-slate-600">{todayCount}회</span>
+                              <span className="w-11 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">{todayCount}회</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="w-16 shrink-0 text-xs text-slate-600">이번 주</span>
-                              <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-indigo-400" style={{ width: `${weekOnlyPct}%` }} />
+                              <span className="w-16 shrink-0 text-xs font-medium text-slate-600">이번 주</span>
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div className="h-full rounded-full bg-indigo-400 transition-all" style={{ width: `${weekOnlyPct}%` }} />
                               </div>
-                              <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums text-slate-600">{weekCount - todayCount}회</span>
+                              <span className="w-11 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">{weekCount - todayCount}회</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="w-16 shrink-0 text-xs text-slate-600">그 이전</span>
-                              <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-slate-400" style={{ width: `${olderPct}%` }} />
+                              <span className="w-16 shrink-0 text-xs font-medium text-slate-600">그 이전</span>
+                              <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div className="h-full rounded-full bg-slate-400 transition-all" style={{ width: `${olderPct}%` }} />
                               </div>
-                              <span className="w-10 shrink-0 text-right text-xs font-medium tabular-nums text-slate-600">{olderCount}회</span>
+                              <span className="w-11 shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700">{olderCount}회</span>
                             </div>
                           </div>
                         </div>
@@ -438,49 +449,65 @@ export default function PriceCalculator() {
                     </div>
                   );
                 })()}
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="min-w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-slate-100">
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">일시</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">제품</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-center font-semibold text-slate-700">폭×높이</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">타입</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-right font-semibold text-slate-700">가격(엔)</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">IP</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">위치</th>
-                      <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700">출처</th>
+                <div className="overflow-hidden rounded-xl border border-slate-200/90 shadow-inner">
+                <div className="max-h-[min(70vh,520px)] overflow-auto">
+                <table className="min-w-[920px] w-full border-collapse text-left text-sm">
+                  <thead className="sticky top-0 z-10 bg-slate-800 text-white shadow-md">
+                    <tr>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">일시</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">제품</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider">폭×높이</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">타입</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider">가격</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">IP</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">위치</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">접속</th>
+                      <th className="whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">출처</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {historyList.map((row) => (
-                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-600">
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {historyList.map((row, idx) => (
+                      <tr key={row.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/70"}>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-xs tabular-nums text-slate-600">
                           {new Date(row.created_at).toLocaleString("ko-KR")}
                         </td>
-                        <td className="px-3 py-2 text-slate-800">
-                          {row.product_type === "sheet_shutter" ? "시트셔터" : "차고셔터"}
+                        <td className="px-3 py-2.5">
+                          <span
+                            className={`inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${
+                              row.product_type === "sheet_shutter"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-amber-100 text-amber-900"
+                            }`}
+                          >
+                            {row.product_type === "sheet_shutter" ? "시트" : "차고"}
+                          </span>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-center text-slate-700">
+                        <td className="whitespace-nowrap px-3 py-2.5 text-center text-xs font-semibold tabular-nums text-slate-800">
                           {row.width_mm}×{row.height_mm}
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{row.type_info}</td>
-                        <td className="whitespace-nowrap px-3 py-2 text-right font-medium tabular-nums text-slate-800">
+                        <td className="max-w-[7rem] truncate px-3 py-2.5 text-xs text-slate-700" title={row.type_info}>
+                          {row.type_info}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold tabular-nums text-slate-900">
                           ¥{formatPrice(row.price_yen)}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-sm text-slate-600">
+                        <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs text-slate-600">
                           {row.ip_address || "—"}
                         </td>
-                        <td className="max-w-[10rem] truncate px-3 py-2 text-slate-600" title={row.location ?? ""}>
+                        <td className="max-w-[8rem] truncate px-3 py-2.5 text-xs text-slate-600" title={row.location ?? ""}>
                           {row.location || "—"}
                         </td>
-                        <td className="max-w-[12rem] truncate px-3 py-2 text-slate-500" title={row.referrer ?? ""}>
+                        <td className="max-w-[11rem] truncate px-3 py-2.5 text-xs text-slate-600" title={row.access_env ?? ""}>
+                          {row.access_env || "—"}
+                        </td>
+                        <td className="max-w-[10rem] truncate px-3 py-2.5 text-xs text-slate-500" title={row.referrer ?? ""}>
                           {row.referrer || "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
               </>
             )}
@@ -489,20 +516,24 @@ export default function PriceCalculator() {
 
         {/* 모델 선택 */}
         <section className={theme.section}>
-          <h2 className={`mb-4 text-base font-semibold sm:text-lg ${theme.sectionTitle}`}>모델 선택</h2>
-          <div className="flex gap-4">
+          <div className="mb-5 flex items-center gap-2.5">
+            <span className={`h-8 w-1 shrink-0 rounded-full ${theme.sectionAccent}`} aria-hidden />
+            <h2 className={`text-lg font-semibold tracking-tight sm:text-xl ${theme.sectionTitle}`}>모델 선택</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             {(Object.keys(PRODUCT_TYPES) as ProductType[]).map((pt) => (
               <button
                 key={pt}
                 onClick={() => setProductType(pt)}
-                className={`flex-1 rounded-xl px-6 py-4 text-lg font-bold shadow-md transition-all duration-200 ${
+                type="button"
+                className={`relative flex-1 rounded-2xl px-5 py-4 text-left text-lg font-bold transition-all duration-200 sm:py-5 ${
                   pt === "sheet_shutter"
                     ? productType === pt
-                      ? "bg-emerald-600 text-white ring-2 ring-emerald-400 ring-offset-2"
-                      : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-2 border-emerald-200"
+                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-500/30"
+                      : "border border-emerald-200/80 bg-emerald-50/50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50"
                     : productType === pt
-                      ? "bg-amber-500 text-white ring-2 ring-amber-400 ring-offset-2"
-                      : "bg-amber-50 text-amber-700 hover:bg-amber-100 border-2 border-amber-200"
+                      ? "bg-amber-500 text-white shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/40"
+                      : "border border-amber-200/80 bg-amber-50/50 text-amber-900 hover:border-amber-300 hover:bg-amber-50"
                 }`}
               >
                 {PRODUCT_TYPES[pt]}
@@ -510,19 +541,22 @@ export default function PriceCalculator() {
             ))}
           </div>
           {isGarageShutter && (
-            <p className="mt-3 text-sm text-amber-700/90">
-              차고셔터: 폭 2400~6000mm, 높이 2100~2700mm · 우드판넬·다크계열·프리미엄판넬
+            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-relaxed text-amber-900/90 ring-1 ring-amber-200/60">
+              차고셔터: 폭 2400~6000mm, 높이 2100~2700mm · 우드·다크·프리미엄 패널
             </p>
           )}
         </section>
 
         {/* 계산기 폼 */}
         <section className={theme.section}>
-          <h2 className={`mb-4 text-base font-semibold sm:text-lg ${theme.sectionTitle}`}>사양 입력</h2>
-          <div className="flex flex-wrap items-end gap-6 sm:gap-8">
-            <div className="flex flex-col gap-1">
-              <label className={isSheetShutter ? "text-sm font-medium text-emerald-800" : "text-sm font-medium text-amber-800"}>
-                폭 <span className={isSheetShutter ? "font-normal text-emerald-600" : "font-normal text-amber-600"}>(mm)</span>
+          <div className="mb-5 flex items-center gap-2.5">
+            <span className={`h-8 w-1 shrink-0 rounded-full ${theme.sectionAccent}`} aria-hidden />
+            <h2 className={`text-lg font-semibold tracking-tight sm:text-xl ${theme.sectionTitle}`}>사양 입력</h2>
+          </div>
+          <div className="flex flex-wrap items-end gap-6 sm:gap-10">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                폭 <span className="font-normal normal-case text-slate-400">(mm)</span>
               </label>
               <input
                 type="text"
@@ -530,14 +564,14 @@ export default function PriceCalculator() {
                 value={width ? formatNumber(parseFormatted(width)) : width}
                 onChange={(e) => setWidth(e.target.value.replace(/\D/g, ""))}
                 placeholder={isGarageShutter ? "2400~6000" : "800~10000+"}
-                className={`w-36 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                  isSheetShutter ? "focus:border-emerald-500 focus:ring-emerald-500/20" : "focus:border-amber-500 focus:ring-amber-500/20"
+                className={`w-40 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-base font-medium tabular-nums text-slate-900 shadow-inner transition placeholder:text-slate-400 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 ${
+                  isSheetShutter ? "focus:ring-emerald-500/35" : "focus:ring-amber-500/35"
                 }`}
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className={isSheetShutter ? "text-sm font-medium text-emerald-800" : "text-sm font-medium text-amber-800"}>
-                높이 <span className={isSheetShutter ? "font-normal text-emerald-600" : "font-normal text-amber-600"}>(mm)</span>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                높이 <span className="font-normal normal-case text-slate-400">(mm)</span>
               </label>
               <input
                 type="text"
@@ -545,13 +579,13 @@ export default function PriceCalculator() {
                 value={height ? formatNumber(parseFormatted(height)) : height}
                 onChange={(e) => setHeight(e.target.value.replace(/\D/g, ""))}
                 placeholder={isGarageShutter ? "2100~2700" : "1000~6000+"}
-                className={`w-36 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                  isSheetShutter ? "focus:border-emerald-500 focus:ring-emerald-500/20" : "focus:border-amber-500 focus:ring-amber-500/20"
+                className={`w-40 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-base font-medium tabular-nums text-slate-900 shadow-inner transition placeholder:text-slate-400 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 ${
+                  isSheetShutter ? "focus:ring-emerald-500/35" : "focus:ring-amber-500/35"
                 }`}
               />
             </div>
-            <div>
-              <label className={`mb-2 block text-sm font-medium ${theme.sectionTitle}`}>타입</label>
+            <div className="min-w-0 flex-1">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">타입</label>
               {isGarageShutter ? (
                 <div className="flex flex-wrap gap-2">
                   {GARAGE_PANEL_TYPES_SELECTABLE.map((pt) => (
@@ -559,18 +593,18 @@ export default function PriceCalculator() {
                       key={pt}
                       onClick={() => setGaragePanelType(pt)}
                       type="button"
-                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                      className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${
                         pt === "wood"
                           ? garagePanelType === pt
-                            ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
-                            : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                            ? "bg-amber-600 text-white shadow-md shadow-amber-600/20 ring-2 ring-amber-400/50"
+                            : "border border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-50"
                           : pt === "dark"
                             ? garagePanelType === pt
-                              ? "bg-slate-600 text-white ring-2 ring-slate-400 ring-offset-2"
-                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                              ? "bg-slate-700 text-white shadow-md shadow-slate-600/25 ring-2 ring-slate-500/40"
+                              : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                             : garagePanelType === pt
-                              ? "bg-amber-700 text-white ring-2 ring-amber-400 ring-offset-2"
-                              : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                              ? "bg-amber-800 text-white shadow-md shadow-amber-900/20 ring-2 ring-amber-500/40"
+                              : "border border-amber-200 bg-amber-50/80 text-amber-900 hover:bg-amber-50"
                       }`}
                     >
                       {GARAGE_PANEL_TYPES[pt]}
@@ -584,18 +618,18 @@ export default function PriceCalculator() {
                       key={ct}
                       onClick={() => setCType(ct)}
                       type="button"
-                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                      className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200 ${
                         ct === "C-1"
                           ? cType === ct
-                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                            ? "bg-slate-800 text-white shadow-md ring-2 ring-slate-600/50"
+                            : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                           : ct === "C-2"
                             ? cType === ct
-                              ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
-                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                              ? "bg-blue-600 text-white shadow-md shadow-blue-600/25 ring-2 ring-blue-400/50"
+                              : "border border-blue-200 bg-blue-50/80 text-blue-800 hover:bg-blue-50"
                             : cType === ct
-                              ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
-                              : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
+                              ? "bg-violet-600 text-white shadow-md shadow-violet-600/25 ring-2 ring-violet-400/50"
+                              : "border border-violet-200 bg-violet-50/80 text-violet-800 hover:bg-violet-50"
                       }`}
                     >
                       {ct}
@@ -605,43 +639,48 @@ export default function PriceCalculator() {
               )}
             </div>
           </div>
-          <div className={`mt-5 rounded-xl border-2 px-5 py-4 sm:px-6 sm:py-5 ${priceBoxTheme.border} ${priceBoxTheme.bg}`}>
-            <p className={`text-sm font-medium ${priceBoxTheme.label}`}>예상 가격</p>
-            <p className={`mt-1 text-2xl font-bold tabular-nums sm:text-3xl ${priceBoxTheme.value}`}>
+          <div className={`mt-6 rounded-2xl border-2 px-6 py-5 sm:px-8 sm:py-6 ${priceBoxTheme.border} ${priceBoxTheme.bg}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${priceBoxTheme.label}`}>예상 가격</p>
+            <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl ${priceBoxTheme.value}`}>
               {loading ? "로딩 중…" : price !== null ? `¥${formatPrice(price)}` : "—"}
             </p>
-            <p className={`mt-0.5 text-sm ${priceBoxTheme.sub}`}>엔 (일본엔)</p>
+            <p className={`mt-1 text-sm font-medium ${priceBoxTheme.sub}`}>일본 엔 (JPY)</p>
           </div>
         </section>
 
         {/* 단가 테이블 보기 */}
         <section
-          className={`rounded-xl border-2 transition-all duration-200 ${
+          className={`rounded-2xl border transition-all duration-200 ${
             showTable
-              ? isSheetShutter
-                ? "border-emerald-300 bg-white shadow-sm shadow-emerald-100/40"
-                : "border-amber-300 bg-white shadow-sm shadow-amber-100/40"
-              : isSheetShutter
-                ? "border-emerald-200 border-dashed bg-emerald-50/60"
-                : "border-amber-200 border-dashed bg-amber-50/60"
+              ? "border-slate-200/90 bg-white shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03]"
+              : `border-dashed ${isSheetShutter ? "border-emerald-300/60 bg-emerald-50/40" : "border-amber-300/60 bg-amber-50/40"}`
           }`}
         >
           <button
             type="button"
             onClick={() => setShowTable(!showTable)}
-            className={`flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors sm:px-6 ${
-              isSheetShutter ? "hover:bg-emerald-100/50" : "hover:bg-amber-100/50"
+            className={`flex w-full items-center justify-between gap-3 rounded-2xl px-5 py-4 text-left transition-colors sm:px-6 sm:py-5 ${
+              showTable
+                ? "hover:bg-slate-50/80"
+                : isSheetShutter
+                  ? "hover:bg-emerald-50/80"
+                  : "hover:bg-amber-50/80"
             }`}
           >
-            <span className={isSheetShutter ? "text-emerald-500" : "text-amber-500"} aria-hidden>
-              {showTable ? "▾" : "▸"}
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${isSheetShutter ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`} aria-hidden>
+              {showTable ? "−" : "+"}
             </span>
-            <span className={`flex-1 text-left font-semibold ${theme.sectionTitle}`}>
-              {showTable ? "단가 테이블 숨기기" : "단가 테이블 보기"}
+            <span className="flex-1 text-left">
+              <span className={`block text-base font-semibold sm:text-lg ${theme.sectionTitle}`}>
+                {showTable ? "단가 테이블 숨기기" : "단가 테이블 보기"}
+              </span>
+              {!showTable && (
+                <span className="mt-0.5 block text-xs text-slate-500">관리자용 · 셀 클릭으로 단가 수정</span>
+              )}
             </span>
             {!showTable && (
-              <span className={isSheetShutter ? "text-sm font-normal text-emerald-600/80" : "text-sm font-normal text-amber-600/80"}>
-                단가 수정 시 여기서 진행
+              <span className={`hidden text-xs font-semibold sm:inline ${isSheetShutter ? "text-emerald-700" : "text-amber-800"}`}>
+                펼치기
               </span>
             )}
           </button>
@@ -777,25 +816,26 @@ export default function PriceCalculator() {
                 </p>
               </div>
             )}
-            <div className="mb-4 flex items-center gap-4">
-              <h2 className={`text-lg font-semibold ${theme.sectionTitle}`}>
-                단가 테이블 ({PRODUCT_TYPES[productType]})
+            <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
+              <h2 className={`text-base font-semibold sm:text-lg ${theme.sectionTitle}`}>
+                단가 테이블 · {PRODUCT_TYPES[productType]}
               </h2>
-              {saving && <span className="text-sm font-medium text-slate-600">저장 중…</span>}
+              {saving && <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">저장 중…</span>}
               {isGarageShutter ? (
                 <div className="flex flex-wrap gap-2">
                   {(Object.keys(GARAGE_PANEL_TYPES) as GaragePanelType[]).map((pt) => (
                     <button
                       key={pt}
                       onClick={() => setTableGaragePanelType(pt)}
-                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                      type="button"
+                      className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all duration-200 sm:text-sm ${
                         pt === "base"
                           ? tableGaragePanelType === pt
-                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                            ? "bg-slate-800 text-white shadow-sm ring-2 ring-slate-600/40"
+                            : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                           : tableGaragePanelType === pt
-                            ? "bg-amber-600 text-white ring-2 ring-amber-400 ring-offset-2"
-                            : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                            ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-400/50"
+                            : "border border-amber-200 bg-amber-50/80 text-amber-900 hover:bg-amber-50"
                       }`}
                     >
                       {GARAGE_PANEL_TYPES[pt]}
@@ -803,23 +843,24 @@ export default function PriceCalculator() {
                   ))}
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {(["C-1", "C-2", "C-3"] as CType[]).map((ct) => (
                     <button
                       key={ct}
                       onClick={() => setTableCType(ct)}
-                      className={`rounded-lg px-4 py-2 text-sm font-bold transition-all duration-200 ${
+                      type="button"
+                      className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all duration-200 sm:text-sm ${
                         ct === "C-1"
                           ? tableCType === ct
-                            ? "bg-slate-700 text-white ring-2 ring-slate-400 ring-offset-2"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-300"
+                            ? "bg-slate-800 text-white shadow-sm ring-2 ring-slate-600/40"
+                            : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                           : ct === "C-2"
                             ? tableCType === ct
-                              ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2"
-                              : "bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
+                              ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/50"
+                              : "border border-blue-200 bg-blue-50/80 text-blue-800 hover:bg-blue-50"
                             : tableCType === ct
-                              ? "bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-2"
-                              : "bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200"
+                              ? "bg-violet-600 text-white shadow-sm ring-2 ring-violet-400/50"
+                              : "border border-violet-200 bg-violet-50/80 text-violet-800 hover:bg-violet-50"
                       }`}
                     >
                       {ct}
@@ -828,7 +869,7 @@ export default function PriceCalculator() {
                 </div>
               )}
             </div>
-            <p className="mb-3 text-sm text-slate-600">
+            <p className="mb-3 text-sm leading-relaxed text-slate-500">
               {isGarageShutter
                 ? "기본만 클릭하여 수정. 우드/다크/프리미엄은 자동 계산됩니다."
                 : "가격을 클릭하면 변경 모달이 열립니다. C-1 기준 단가를 수정하면 C-2, C-3는 자동 계산됩니다."}
@@ -836,17 +877,17 @@ export default function PriceCalculator() {
             {loading ? (
               <p className="py-8 text-center text-slate-500">로딩 중…</p>
             ) : isGarageShutter ? (
-              <div className="overflow-x-auto rounded-lg border border-slate-300 shadow-inner">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
                 <table className="min-w-full border-collapse text-base">
                   <thead>
-                    <tr className="bg-slate-200/90">
-                      <th className="sticky left-0 z-10 border-b border-r border-slate-300 bg-slate-200/95 px-3 py-2.5 text-left text-sm font-semibold text-slate-800">
+                    <tr className="bg-slate-800 text-white">
+                      <th className="sticky left-0 z-10 border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
                         높이 ∖ 폭
                       </th>
                       {GARAGE_WIDTH_RANGES.map((r) => (
                         <th
                           key={r.label}
-                          className="border-b border-slate-300 px-3 py-2.5 text-center text-sm font-semibold text-slate-800"
+                          className="border-b border-slate-700 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide"
                         >
                           {r.label}
                         </th>
@@ -882,17 +923,17 @@ export default function PriceCalculator() {
                 </table>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-slate-300 shadow-inner">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
                 <table className="min-w-full border-collapse text-base">
                   <thead>
-                    <tr className="bg-slate-200/90">
-                      <th className="sticky left-0 z-10 border-b border-r border-slate-300 bg-slate-200/95 px-3 py-2.5 text-left text-sm font-semibold text-slate-800">
+                    <tr className="bg-slate-800 text-white">
+                      <th className="sticky left-0 z-10 border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
                         높이 ∖ 폭
                       </th>
                       {WIDTH_RANGES.map((r) => (
                         <th
                           key={r.label}
-                          className="border-b border-slate-300 px-3 py-2.5 text-center text-sm font-semibold text-slate-800"
+                          className="border-b border-slate-700 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide"
                         >
                           {r.label}
                         </th>

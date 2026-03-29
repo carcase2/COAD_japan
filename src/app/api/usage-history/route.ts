@@ -12,16 +12,32 @@ export async function GET(request: Request) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  type Row = { id: string; created_at: string; product_type: string; width_mm: number; height_mm: number; price_yen: number; type_info: string; referrer: string | null; ip_address: string | null; location: string | null };
-  const fullSelect = "id, created_at, product_type, width_mm, height_mm, price_yen, type_info, referrer, ip_address, location";
+  type Row = {
+    id: string;
+    created_at: string;
+    product_type: string;
+    width_mm: number;
+    height_mm: number;
+    price_yen: number;
+    type_info: string;
+    referrer: string | null;
+    ip_address: string | null;
+    location: string | null;
+    access_env: string | null;
+  };
+  const fullSelect =
+    "id, created_at, product_type, width_mm, height_mm, price_yen, type_info, referrer, ip_address, location, access_env";
   const result = await supabase
     .from("usage_history")
     .select(fullSelect)
     .order("created_at", { ascending: false })
     .limit(500);
 
+  const missingCol = (msg: string) =>
+    msg.includes("ip_address") || msg.includes("location") || msg.includes("access_env") || msg.includes("schema cache");
+
   let data: Row[];
-  if (result.error && (result.error.message.includes("ip_address") || result.error.message.includes("location") || result.error.message.includes("schema cache"))) {
+  if (result.error && missingCol(result.error.message)) {
     const fallback = await supabase
       .from("usage_history")
       .select("id, created_at, product_type, width_mm, height_mm, price_yen, type_info, referrer")
@@ -30,7 +46,7 @@ export async function GET(request: Request) {
     if (fallback.error) {
       return NextResponse.json({ error: fallback.error.message }, { status: 500 });
     }
-    data = (fallback.data ?? []).map((row) => ({ ...row, ip_address: null, location: null }));
+    data = (fallback.data ?? []).map((row) => ({ ...row, ip_address: null, location: null, access_env: null }));
   } else if (result.error) {
     return NextResponse.json({ error: result.error.message }, { status: 500 });
   } else {

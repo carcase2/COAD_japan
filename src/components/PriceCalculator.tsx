@@ -27,6 +27,7 @@ import {
   type GaragePanelType,
 } from "@/lib/price";
 import { recordUsage } from "@/lib/usageHistory";
+import packageJson from "../../package.json";
 
 export default function PriceCalculator() {
   const pathname = usePathname();
@@ -240,6 +241,15 @@ export default function PriceCalculator() {
     }
   }, [secretModalOpen]);
 
+  useEffect(() => {
+    if (!showTable || editModal || secretModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowTable(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showTable, editModal, secretModalOpen]);
+
   const goHome = useCallback(() => {
     setHistoryUnlocked(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -261,10 +271,10 @@ export default function PriceCalculator() {
   const isSheetShutter = productType === "sheet_shutter";
 
   const theme = {
-    page: "min-h-screen py-6 px-3 sm:py-10 sm:px-6",
+    page: "w-full px-3 py-2 pb-24 sm:px-4 sm:pb-4",
     headerDesc: "text-slate-600",
-    shell: "mx-auto max-w-4xl border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]",
-    section: "border-t border-slate-200 bg-white px-5 py-6 sm:px-8 sm:py-7",
+    shell: "mx-auto w-full max-w-4xl border border-slate-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]",
+    section: "border-t border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5",
     sectionTitle: "text-xs font-bold uppercase tracking-[0.14em] text-slate-500",
     sectionTitleDisplay: "text-base font-semibold tracking-tight text-slate-900 sm:text-lg",
     sectionRule: isGarageShutter ? "border-l-[3px] border-amber-500 pl-3" : "border-l-[3px] border-emerald-600 pl-3",
@@ -279,6 +289,13 @@ export default function PriceCalculator() {
           value: "text-amber-950",
           sub: "text-amber-800/90",
           actionBtn: "bg-amber-600 hover:bg-amber-700",
+          tableTrigger: "border-2 border-dashed border-amber-300/75 bg-amber-50/50 hover:bg-amber-50/90",
+          tableTriggerIcon: "bg-amber-100 text-amber-900",
+          tableTriggerAction: "text-amber-800",
+          modalBodyBg: "bg-amber-50/35",
+          modalFrame: "border-slate-200 border-l-[4px] border-l-amber-500",
+          modalHeadBar: "border-b-2 border-amber-200/90",
+          modalClose: "border-amber-400 text-amber-900 hover:bg-amber-50",
         }
       : garagePanelType === "dark"
         ? {
@@ -287,6 +304,13 @@ export default function PriceCalculator() {
             value: "text-slate-900",
             sub: "text-slate-600",
             actionBtn: "bg-slate-700 hover:bg-slate-800",
+            tableTrigger: "border-2 border-dashed border-slate-400/75 bg-slate-100/55 hover:bg-slate-200/75",
+            tableTriggerIcon: "bg-slate-600 text-white",
+            tableTriggerAction: "text-slate-700",
+            modalBodyBg: "bg-slate-100/45",
+            modalFrame: "border-slate-200 border-l-[4px] border-l-slate-700",
+            modalHeadBar: "border-b-2 border-slate-300",
+            modalClose: "border-slate-500 text-slate-800 hover:bg-slate-100",
           }
         : {
             wrap: "border border-amber-300/90 bg-amber-100/50 border-l-[4px] border-l-amber-800",
@@ -294,6 +318,13 @@ export default function PriceCalculator() {
             value: "text-amber-950",
             sub: "text-amber-800",
             actionBtn: "bg-amber-800 hover:bg-amber-900",
+            tableTrigger: "border-2 border-dashed border-amber-500/70 bg-amber-100/45 hover:bg-amber-100/80",
+            tableTriggerIcon: "bg-amber-800 text-amber-50",
+            tableTriggerAction: "text-amber-950",
+            modalBodyBg: "bg-amber-100/30",
+            modalFrame: "border-slate-200 border-l-[4px] border-l-amber-800",
+            modalHeadBar: "border-b-2 border-amber-300/90",
+            modalClose: "border-amber-700 text-amber-950 hover:bg-amber-50",
           }
     : cType === "C-1"
       ? {
@@ -302,6 +333,13 @@ export default function PriceCalculator() {
           value: "text-slate-900",
           sub: "text-slate-600",
           actionBtn: "bg-slate-800 hover:bg-slate-900",
+          tableTrigger: "border-2 border-dashed border-slate-400/75 bg-slate-50/80 hover:bg-slate-100/90",
+          tableTriggerIcon: "bg-slate-200 text-slate-800",
+          tableTriggerAction: "text-slate-700",
+          modalBodyBg: "bg-slate-50/45",
+          modalFrame: "border-slate-200 border-l-[4px] border-l-slate-800",
+          modalHeadBar: "border-b-2 border-slate-200",
+          modalClose: "border-slate-400 text-slate-800 hover:bg-slate-50",
         }
       : cType === "C-2"
         ? {
@@ -310,6 +348,13 @@ export default function PriceCalculator() {
             value: "text-blue-950",
             sub: "text-blue-800/90",
             actionBtn: "bg-blue-600 hover:bg-blue-700",
+            tableTrigger: "border-2 border-dashed border-blue-300/80 bg-blue-50/50 hover:bg-blue-50/90",
+            tableTriggerIcon: "bg-blue-100 text-blue-900",
+            tableTriggerAction: "text-blue-700",
+            modalBodyBg: "bg-blue-50/35",
+            modalFrame: "border-slate-200 border-l-[4px] border-l-blue-600",
+            modalHeadBar: "border-b-2 border-blue-200/90",
+            modalClose: "border-blue-400 text-blue-900 hover:bg-blue-50",
           }
         : {
             wrap: "border border-violet-200/90 bg-violet-50/70 border-l-[4px] border-l-violet-600",
@@ -317,72 +362,104 @@ export default function PriceCalculator() {
             value: "text-violet-950",
             sub: "text-violet-800/90",
             actionBtn: "bg-violet-600 hover:bg-violet-700",
+            tableTrigger: "border-2 border-dashed border-violet-300/80 bg-violet-50/50 hover:bg-violet-50/90",
+            tableTriggerIcon: "bg-violet-100 text-violet-900",
+            tableTriggerAction: "text-violet-800",
+            modalBodyBg: "bg-violet-50/35",
+            modalFrame: "border-slate-200 border-l-[4px] border-l-violet-600",
+            modalHeadBar: "border-b-2 border-violet-200/90",
+            modalClose: "border-violet-400 text-violet-900 hover:bg-violet-50",
           };
+
+  /** 단가 모달 표 헤더 — 표에서 선택한 탭(C / 패널) 색 */
+  const tableHeadStyle = isGarageShutter
+    ? tableGaragePanelType === "base"
+      ? { row: "bg-slate-800 text-white", b: "border-slate-700", sticky: "bg-slate-800" }
+      : tableGaragePanelType === "wood"
+        ? { row: "bg-amber-700 text-white", b: "border-amber-800", sticky: "bg-amber-700" }
+        : tableGaragePanelType === "dark"
+          ? { row: "bg-slate-700 text-white", b: "border-slate-800", sticky: "bg-slate-700" }
+          : { row: "bg-amber-900 text-amber-50", b: "border-amber-950", sticky: "bg-amber-900" }
+    : tableCType === "C-1"
+      ? { row: "bg-slate-800 text-white", b: "border-slate-700", sticky: "bg-slate-800" }
+      : tableCType === "C-2"
+        ? { row: "bg-blue-700 text-white", b: "border-blue-800", sticky: "bg-blue-700" }
+        : { row: "bg-violet-700 text-white", b: "border-violet-800", sticky: "bg-violet-700" };
+
+  const specTypeLabel = isGarageShutter
+    ? (GARAGE_PANEL_TYPES[garagePanelType] ?? garagePanelType)
+    : cType;
+  const specWidthMm = parseFormatted(width);
+  const specHeightMm = parseFormatted(height);
+  const specSummaryLine = `${specTypeLabel} · ${specWidthMm > 0 ? `폭 ${formatNumber(specWidthMm)}mm` : "폭 —"} · ${specHeightMm > 0 ? `높이 ${formatNumber(specHeightMm)}mm` : "높이 —"}`;
 
   return (
     <div className={theme.page}>
-      <div className={`${theme.shell} space-y-0 pb-28 sm:pb-0`}>
-        <div className="sticky top-0 z-40 bg-white shadow-[0_2px_12px_-4px_rgba(15,23,42,0.12)]">
-        <header className="relative border-b border-slate-200 bg-slate-50/50 px-5 py-6 sm:px-8 sm:py-7">
+      <div className={`${theme.shell} space-y-0`}>
+        <div className="shrink-0 border-b border-slate-200 bg-white shadow-[0_1px_0_rgba(15,23,42,0.06)]">
+        <header className="relative border-b border-slate-200 bg-slate-50/50 px-4 py-3 sm:px-5 sm:py-3.5">
           <button
             type="button"
             onClick={() => setSecretModalOpen(true)}
-            className="absolute right-3 top-3 h-7 w-7 rounded border-0 bg-transparent opacity-[0.08] hover:opacity-20 focus:opacity-20 focus:outline-none sm:right-5 sm:top-5"
+            className="absolute right-2 top-2 h-6 w-6 rounded border-0 bg-transparent opacity-[0.08] hover:opacity-20 focus:opacity-20 focus:outline-none sm:right-4 sm:top-3"
             style={{ background: "currentColor" }}
             title=""
             aria-label="비밀"
           />
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-2.5 sm:gap-3">
             <Link
               href="/"
               onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
-              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center border border-slate-300 bg-white text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900"
+              className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center border border-slate-300 bg-white text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900"
               title="홈"
               aria-label="홈"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
             </Link>
-            <div className={`min-w-0 flex-1 border-l-2 pl-4 ${isGarageShutter ? "border-amber-500" : "border-emerald-600"}`}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">COAD Japan · Internal</p>
-              <h1 className="mt-2">
+            <div className={`min-w-0 flex-1 border-l-2 pl-3 ${isGarageShutter ? "border-amber-500" : "border-emerald-600"}`}>
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">COAD Japan · Internal</p>
+              <h1 className="mt-0.5 leading-tight">
                 <Link
                   href="/"
                   onClick={(e) => { if (pathname === "/") { e.preventDefault(); goHome(); } }}
-                  className="block text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
+                  className="block text-base font-semibold tracking-tight text-slate-900 sm:text-lg"
                 >
                   견적 전 가격 산출
                 </Link>
               </h1>
-              <p className={`mt-2 max-w-lg text-sm leading-relaxed ${theme.headerDesc}`}>
+              <p className={`mt-1 max-w-lg text-[11px] leading-snug sm:text-xs ${theme.headerDesc}`}>
                 일본 현지 견적서 작성 전 참고용. 규격(mm)과 타입을 입력하면 예상 금액(엔)을 표시합니다.
               </p>
             </div>
           </div>
         </header>
 
-        {/* 모델 선택 */}
-        <section className={theme.section}>
-          <div className={`mb-5 ${theme.sectionRule}`}>
-            <p className={theme.sectionTitle}>제품 구분</p>
-            <h2 className={`mt-1 ${theme.sectionTitleDisplay}`}>모델 선택</h2>
+        {/* 모델 선택 (컴팩트 · 한 줄 제목) */}
+        <section className="border-t border-slate-200 bg-white px-4 py-2.5 sm:px-5 sm:py-3">
+          <div className={`mb-2 flex min-w-0 flex-nowrap items-center gap-x-1.5 overflow-hidden sm:gap-x-2 ${theme.sectionRule}`}>
+            <span className={`shrink-0 ${theme.sectionTitle}`}>제품 구분</span>
+            <span className="shrink-0 text-slate-300 select-none" aria-hidden>
+              ·
+            </span>
+            <h2 className="shrink-0 text-sm font-semibold tracking-tight text-slate-900 sm:text-base">모델 선택</h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             {(Object.keys(PRODUCT_TYPES) as ProductType[]).map((pt) => (
               <button
                 key={pt}
                 onClick={() => setProductType(pt)}
                 type="button"
                 aria-pressed={productType === pt}
-                className={`relative flex-1 rounded-2xl px-5 py-4 text-left text-lg font-bold transition-all duration-200 sm:min-h-[3.5rem] sm:py-5 ${
+                className={`relative min-h-[2.75rem] rounded-xl px-3 py-2.5 text-left text-sm font-bold transition-all duration-200 sm:min-h-0 sm:py-3 sm:text-base ${
                   pt === "sheet_shutter"
                     ? productType === pt
-                      ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 ring-2 ring-emerald-500/30"
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-1 ring-emerald-500/40"
                       : "border border-emerald-200/80 bg-emerald-50/50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50"
                     : productType === pt
-                      ? "bg-amber-500 text-white shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/40"
+                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/20 ring-1 ring-amber-400/35"
                       : "border border-amber-200/80 bg-amber-50/50 text-amber-900 hover:border-amber-300 hover:bg-amber-50"
                 }`}
               >
@@ -391,18 +468,18 @@ export default function PriceCalculator() {
             ))}
           </div>
           {isGarageShutter ? (
-            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2.5 text-sm leading-relaxed text-amber-900/90 ring-1 ring-amber-200/60">
+            <p className="mt-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-snug text-amber-900/90 ring-1 ring-amber-200/60 sm:text-xs">
               <span className="font-semibold">차고셔터</span> 폭 2400~6000mm, 높이 2100~2700mm · 우드·다크·프리미엄 패널
             </p>
           ) : (
-            <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm leading-relaxed text-emerald-900/90 ring-1 ring-emerald-200/60">
+            <p className="mt-2 rounded-md bg-emerald-50 px-2.5 py-1.5 text-[11px] leading-snug text-emerald-900/90 ring-1 ring-emerald-200/60 sm:text-xs">
               <span className="font-semibold">시트셔터</span> 폭·높이는 mm 단위 숫자만 입력 · 콤마는 자동 표시
             </p>
           )}
         </section>
         </div>
 
-        {/* 사용 히스토리 (비밀번호 인증 후) — 스크롤 영역, 상단 고정(제목·모델) 아래 */}
+        {/* 사용 히스토리 (비밀번호 인증 후) */}
         {historyUnlocked && (
           <section className={theme.section}>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
@@ -594,10 +671,18 @@ export default function PriceCalculator() {
 
         {/* 계산기 폼 */}
         <section className={theme.section}>
-          <div className={`mb-5 ${theme.sectionRule}`}>
-            <p className={theme.sectionTitle}>입력</p>
-            <h2 className={`mt-1 ${theme.sectionTitleDisplay}`}>사양 입력</h2>
-            <p className="mt-1 text-xs text-slate-500">① 폭·높이 → ② 타입 → 예상 금액</p>
+          <div className={`mb-3 flex min-w-0 flex-nowrap items-center gap-x-1.5 overflow-hidden sm:gap-x-2 ${theme.sectionRule}`}>
+            <span className={`shrink-0 ${theme.sectionTitle}`}>입력</span>
+            <span className="shrink-0 text-slate-300 select-none" aria-hidden>
+              ·
+            </span>
+            <h2 className="shrink-0 text-sm font-semibold tracking-tight text-slate-900 sm:text-base">사양 입력</h2>
+            <span className="shrink-0 text-slate-300 select-none" aria-hidden>
+              ·
+            </span>
+            <p className="min-w-0 truncate text-[11px] leading-tight text-slate-500 sm:text-xs" title="① 폭·높이 → ② 타입 → 예상 금액">
+              ① 폭·높이 → ② 타입 → 예상 금액
+            </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-[1fr_1fr_minmax(0,1fr)] sm:items-end sm:gap-6">
             <div className="flex flex-col gap-1.5">
@@ -712,9 +797,14 @@ export default function PriceCalculator() {
             className={`mt-5 rounded-2xl border-2 px-6 py-5 sm:mt-6 sm:px-8 sm:py-6 ${priceAccent.wrap}`}
             role="region"
             aria-live="polite"
-            aria-label="예상 가격"
+            aria-labelledby="calc-price-heading"
           >
-            <p className={`text-xs font-semibold uppercase tracking-wider ${priceAccent.label}`}>예상 가격</p>
+            <p id="calc-price-heading" className={`text-xs font-semibold uppercase tracking-wider ${priceAccent.label}`}>
+              예상 가격
+            </p>
+            <p id="calc-price-spec" className={`mt-1.5 text-sm font-medium tabular-nums sm:text-base ${priceAccent.sub}`}>
+              {specSummaryLine}
+            </p>
             <p className={`mt-2 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl ${priceAccent.value}`}>
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -724,54 +814,63 @@ export default function PriceCalculator() {
               ) : price !== null ? (
                 `¥${formatPrice(price)}`
               ) : (
-                <span className="text-2xl font-semibold opacity-70">폭·높이를 입력하세요</span>
+                <span className={`text-2xl font-semibold opacity-75 ${priceAccent.value}`}>폭·높이를 입력하세요</span>
               )}
             </p>
             <p className={`mt-1 text-sm font-medium ${priceAccent.sub}`}>일본 엔 (JPY)</p>
           </div>
         </section>
 
-        {/* 단가 테이블 보기 */}
+        {/* 단가 테이블 (모달로 열기) */}
         <section className={theme.section}>
           <button
             type="button"
-            onClick={() => setShowTable(!showTable)}
-            className={`flex min-h-[3.25rem] w-full items-center justify-between gap-3 px-5 py-4 text-left transition-all duration-200 sm:min-h-0 sm:px-6 sm:py-5 ${
-              showTable
-                ? "rounded-t-2xl border border-slate-200/90 bg-white shadow-[0_4px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.03] hover:bg-slate-50/80"
-                : isSheetShutter
-                  ? "rounded-2xl border-2 border-dashed border-emerald-300/60 bg-emerald-50/40 hover:bg-emerald-50/80"
-                  : "rounded-2xl border-2 border-dashed border-amber-300/60 bg-amber-50/40 hover:bg-amber-50/80"
-            }`}
+            onClick={() => setShowTable(true)}
+            className={`flex min-h-[3.25rem] w-full items-center justify-between gap-3 rounded-2xl px-5 py-4 text-left transition-all duration-200 sm:min-h-0 sm:px-6 sm:py-5 ${priceAccent.tableTrigger}`}
           >
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${isSheetShutter ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"}`} aria-hidden>
-              {showTable ? "−" : "+"}
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${priceAccent.tableTriggerIcon}`}
+              aria-hidden
+            >
+              +
             </span>
             <span className="flex-1 text-left">
-              <span className="block text-xs font-bold uppercase tracking-[0.12em] text-slate-500">관리</span>
-              <span className={`mt-0.5 block ${theme.sectionTitleDisplay}`}>
-                {showTable ? "단가 테이블 닫기" : "단가 테이블 열기"}
-              </span>
-              {!showTable && (
-                <span className="mt-0.5 block text-xs text-slate-500">셀 클릭으로 단가 수정</span>
-              )}
+              <span className={`block text-xs font-bold uppercase tracking-[0.12em] ${priceAccent.label}`}>관리</span>
+              <span className={`mt-0.5 block ${theme.sectionTitleDisplay} ${priceAccent.value}`}>단가 테이블 열기</span>
+              <span className={`mt-0.5 block text-xs ${priceAccent.sub}`}>모달에서 셀 클릭으로 단가 수정</span>
             </span>
-            {!showTable && (
-              <span className={`hidden text-xs font-semibold sm:inline ${isSheetShutter ? "text-emerald-700" : "text-amber-800"}`}>
-                펼치기
-              </span>
-            )}
+            <span className={`shrink-0 text-xs font-semibold ${priceAccent.tableTriggerAction}`}>열기</span>
           </button>
+        </section>
 
-          {/* 단가 테이블 (보기 클릭 시 표시) */}
-          {showTable && (
-          <section
-            className={`overflow-x-auto border-x border-b border-t px-4 py-5 sm:p-6 ${
-              isSheetShutter
-                ? "rounded-b-2xl border-emerald-200/80 bg-emerald-50/30"
-                : "rounded-b-2xl border-amber-200/80 bg-amber-50/30"
-            }`}
+        {showTable && (
+          <div
+            className="fixed inset-0 z-[45] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-4"
+            onClick={() => setShowTable(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="price-table-modal-title"
           >
+            <div
+              className={`flex max-h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl ${priceAccent.modalFrame}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`flex shrink-0 flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 sm:px-5 ${priceAccent.modalHeadBar}`}>
+                <div className="min-w-0">
+                  <p className={`text-[10px] font-bold uppercase tracking-wider ${priceAccent.label}`}>관리</p>
+                  <h2 id="price-table-modal-title" className={`truncate text-base font-semibold sm:text-lg ${priceAccent.value}`}>
+                    단가 테이블 · {PRODUCT_TYPES[productType]}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTable(false)}
+                  className={`shrink-0 rounded-lg border bg-white px-4 py-2 text-sm font-medium ${priceAccent.modalClose}`}
+                >
+                  닫기
+                </button>
+              </div>
+              <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 ${priceAccent.modalBodyBg}`}>
             {/* 시트셔터: C-2, C-3 추가 금액 | 차고셔터: 패널 설정 (DB 저장) */}
             {!isGarageShutter ? (
               <div className="mb-6 grid gap-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center">
@@ -897,9 +996,6 @@ export default function PriceCalculator() {
               </div>
             )}
             <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-slate-200 pb-4">
-              <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
-                단가 테이블 · {PRODUCT_TYPES[productType]}
-              </h2>
               {saving && <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">저장 중…</span>}
               {isGarageShutter ? (
                 <div className="flex flex-wrap gap-2">
@@ -960,14 +1056,16 @@ export default function PriceCalculator() {
               <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
                 <table className="min-w-full border-collapse text-base">
                   <thead>
-                    <tr className="bg-slate-800 text-white">
-                      <th className="sticky left-0 z-10 border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                    <tr className={tableHeadStyle.row}>
+                      <th
+                        className={`sticky left-0 z-10 border-b px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide ${tableHeadStyle.b} ${tableHeadStyle.sticky}`}
+                      >
                         높이 ∖ 폭
                       </th>
                       {GARAGE_WIDTH_RANGES.map((r) => (
                         <th
                           key={r.label}
-                          className="border-b border-slate-700 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide"
+                          className={`border-b px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide ${tableHeadStyle.b}`}
                         >
                           {r.label}
                         </th>
@@ -1006,14 +1104,16 @@ export default function PriceCalculator() {
               <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
                 <table className="min-w-full border-collapse text-base">
                   <thead>
-                    <tr className="bg-slate-800 text-white">
-                      <th className="sticky left-0 z-10 border-b border-slate-700 bg-slate-800 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                    <tr className={tableHeadStyle.row}>
+                      <th
+                        className={`sticky left-0 z-10 border-b px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide ${tableHeadStyle.b} ${tableHeadStyle.sticky}`}
+                      >
                         높이 ∖ 폭
                       </th>
                       {WIDTH_RANGES.map((r) => (
                         <th
                           key={r.label}
-                          className="border-b border-slate-700 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide"
+                          className={`border-b px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide ${tableHeadStyle.b}`}
                         >
                           {r.label}
                         </th>
@@ -1043,9 +1143,20 @@ export default function PriceCalculator() {
                 </table>
               </div>
             )}
-          </section>
-          )}
-        </section>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <footer className="border-t border-slate-200 bg-[#e8eaee] px-4 py-2.5 text-center text-slate-600">
+          <p className="text-[11px] sm:text-xs">
+            <span className="font-semibold text-slate-700">COAD Japan · 견적 전 가격 산출</span>
+            <span className="mx-2 text-slate-400 select-none" aria-hidden>
+              ·
+            </span>
+            <span className="font-medium tracking-widest text-slate-500 uppercase">v{packageJson.version}</span>
+          </p>
+        </footer>
 
         {/* 가격 변경 모달 */}
         {editModal && (
@@ -1147,15 +1258,16 @@ export default function PriceCalculator() {
       </div>
 
       <div
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/90 bg-white/95 px-4 py-3 shadow-[0_-8px_32px_-8px_rgba(15,23,42,0.1)] backdrop-blur-md sm:hidden"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/90 bg-white/95 px-4 py-2.5 shadow-[0_-8px_32px_-8px_rgba(15,23,42,0.1)] backdrop-blur-md sm:hidden"
+        style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
         role="status"
         aria-live="polite"
-        aria-label="예상 가격 요약"
+        aria-label={`예상 가격 요약, ${specSummaryLine}`}
       >
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className={`text-[10px] font-bold uppercase tracking-wider ${priceAccent.label}`}>예상 가격</p>
+            <p className={`mt-0.5 truncate text-[11px] font-medium tabular-nums ${priceAccent.sub}`}>{specSummaryLine}</p>
             <p className={`truncate text-lg font-bold tabular-nums ${priceAccent.value}`}>
               {loading ? "불러오는 중…" : price !== null ? `¥${formatPrice(price)}` : "폭·높이 입력"}
             </p>

@@ -2,7 +2,7 @@ import PriceCalculator from "@/components/PriceCalculator";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="w-full">
       <PriceCalculator />
     </main>
   );

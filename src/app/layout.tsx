@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "COAD Japan · 견적 전 가격 산출",
   description: "일본에서 견적서 작성 전, 폭·높이로 미리 예상 가격을 계산합니다. 단가 테이블 보기 및 수정",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#eceef2",
 };
 
 export default function RootLayout({

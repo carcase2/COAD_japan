@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* 모바일: 탭 지연 완화, 의도치 않은 더블탭 줌 완화 */
+button,
+[type="button"],
+[type="submit"] {
+  touch-action: manipulation;
+}
